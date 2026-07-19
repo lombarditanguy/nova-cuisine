@@ -123,12 +123,12 @@ function buildPrompt(config) {
 
   const hasDishwasher = applianceList.some(a => /lave.vaisselle/i.test(a));
   const dishwasherLine = hasDishwasher
-    ? "The dishwasher is fully integrated (encastré): it is hidden behind a decor door panel that exactly matches the surrounding cabinet fronts in color, material and style — no visible white or stainless appliance face, no visible control panel, it must look like a normal cabinet door."
+    ? "The dishwasher is fully integrated (encastré): it is hidden behind a flat decor door panel that exactly matches the surrounding cabinet fronts in color, material and style — a plain cabinet-style door, the same height as a normal base-unit door (roughly 82 cm), at most a slim discreet control strip along the very top edge. It must NOT have a large circular glass porthole window, must NOT have a front-loading drum door, must NOT have a program dial, and must NOT look like a washing machine in any way — no visible white or stainless appliance face at all."
     : "";
 
   const noExtraAppliancesLine = `Do not add any appliance that is not explicitly listed in the mandatory specification above.${
     hasDishwasher ? "" : " In particular, do NOT add a dishwasher: none was selected."
-  } Never add a washing machine, tumble dryer or any other laundry equipment under any circumstance — this is a kitchen, not a utility room, regardless of what the reference photo shows.`;
+  } Never add a washing machine, tumble dryer or any other laundry equipment under any circumstance, and never render the dishwasher as a washing machine — this is a kitchen, not a utility room, regardless of what the reference photo shows.`;
 
   const hasOven = applianceList.some(a => /four/i.test(a));
   const hasHob = applianceList.some(a => /plaque/i.test(a));
@@ -144,7 +144,7 @@ function buildPrompt(config) {
     ? `Additional client instructions specific to this room — follow them precisely and let them override any conflicting instruction above: ${notes}.`
     : "";
 
-  const targetSummaryLine = `MANDATORY CLIENT SPECIFICATION for the new kitchen (highest priority, follow exactly, completely replacing the old kitchen's appearance with zero trace of its original colors): cabinet fronts ${config.doorStyle || "flat"} style in ${config.facades || "matte white"}; worktop ${config.worktop || "white quartz"}; backsplash ${config.credence || "matching the worktop"}; plinth ${config.plinth || "matching the cabinet fronts"}; hardware ${handleDescriptor}; layout ${layoutValue}${wallSideText ? ` along ${wallSideText}` : ""}; upper wall cabinets ${config.upperCabinets ? "present" : "absent"}; appliances (exactly one of each, never duplicated): ${applianceList.length ? applianceList.join(", ") : "none beyond what is strictly necessary"}.`;
+  const targetSummaryLine = `MANDATORY CLIENT SPECIFICATION for the new kitchen (highest priority, follow exactly, completely replacing the old kitchen's appearance with zero trace of its original colors): cabinet fronts ${config.doorStyle || "flat"} style in ${config.facades || "matte white"}; worktop ${config.worktop || "white quartz"}; backsplash ${config.credence || "matching the worktop"}; plinth ${config.plinth || "matching the cabinet fronts"}; hardware ${handleDescriptor}; layout ${layoutValue}${wallSideText ? ` along ${wallSideText}` : ""}; upper wall cabinets ${config.upperCabinets ? "present" : "absent"}; appliances (exactly one of each, never duplicated, and STRICTLY no appliance beyond this list): ${applianceList.length ? applianceList.join(", ") : "none beyond what is strictly necessary"}. ABSOLUTE RULE, no exception: NEVER include a washing machine or any laundry appliance — if a dishwasher is listed, it is a dishwasher, never a washing machine.`;
 
   const lines = [
     targetSummaryLine,
@@ -166,7 +166,7 @@ function buildPrompt(config) {
     "Standard 19 mm melamine cabinet carcasses, filler and end panels fitted around any window, door, boiler or radiator exactly where it already is.",
     "Realistic construction scale, joins, shadows and perspective — the kitchen must look physically built in this room, not pasted on.",
     "Photorealistic single wide shot, professional interior photography. No collage, no split screen, no text, no logo, no watermark, no people, no pets.",
-    `Reminder of the mandatory specification: cabinet fronts exactly ${config.facades || "matte white"} (not the old color), worktop ${config.worktop || "white quartz"}, plinth exactly ${config.plinth || "matching the cabinet fronts"} (not the old color), hardware ${noHandles ? "no handles/knobs" : `${handleShapeWord} in ${handleColorValue} finish (not another color, not another shape)`}, upper wall cabinets ${config.upperCabinets ? "present" : "absent"}, single-wall layout${wallSideText ? ` on ${wallSideText}` : ""} with no corner, appliances strictly limited to ${applianceList.length ? applianceList.join(", ") : "none"} — no washing machine, no dryer, no unlisted appliance of any kind.`
+    `Reminder of the mandatory specification: cabinet fronts exactly ${config.facades || "matte white"} (not the old color), worktop ${config.worktop || "white quartz"}, plinth exactly ${config.plinth || "matching the cabinet fronts"} (not the old color), hardware ${noHandles ? "no handles/knobs" : `${handleShapeWord} in ${handleColorValue} finish (not another color, not another shape)`}, upper wall cabinets ${config.upperCabinets ? "present" : "absent"}, single-wall layout${wallSideText ? ` on ${wallSideText}` : ""} with no corner, appliances strictly limited to ${applianceList.length ? applianceList.join(", ") : "none"} — no washing machine, no dryer, no unlisted appliance of any kind${hasDishwasher ? ", and the dishwasher is a flat integrated cabinet-front panel, definitely not a washing machine with a round porthole door" : ""}.`
   ].filter(Boolean);
 
   return lines.join(" ");
