@@ -14,44 +14,34 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { image, mask, config } = req.body || {};
+    const { image, config } = req.body || {};
     if (!image || !config) {
       return res.status(400).json({ error: "Photo ou configuration manquante." });
     }
 
-    const useMask = typeof mask === "string" && mask.startsWith("data:image");
-    const prompt = buildPrompt(config, useMask);
+    const prompt = buildPrompt(config);
 
-    const modelUrl = useMask
-      ? "https://api.replicate.com/v1/models/black-forest-labs/flux-fill-pro/predictions"
-      : "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions";
-
-    const input = useMask
-      ? {
-          prompt,
-          image,
-          mask,
-          output_format: "jpg",
-          safety_tolerance: 2
-        }
-      : {
-          prompt,
-          input_image: image,
-          aspect_ratio: "match_input_image",
-          output_format: "jpg",
-          safety_tolerance: 2,
-          prompt_upsampling: false
-        };
-
-    const upstream = await fetch(modelUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "Prefer": "wait=5"
-      },
-      body: JSON.stringify({ input })
-    });
+    const upstream = await fetch(
+      "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Prefer": "wait=5"
+        },
+        body: JSON.stringify({
+          input: {
+            prompt,
+            input_image: image,
+            aspect_ratio: "match_input_image",
+            output_format: "jpg",
+            safety_tolerance: 2,
+            prompt_upsampling: false
+          }
+        })
+      }
+    );
 
     const raw = await upstream.text();
     let prediction;
@@ -81,7 +71,7 @@ export default async function handler(req, res) {
   }
 }
 
-function buildPrompt(config, useMask) {
+function buildPrompt(config) {
   const applianceList = Array.isArray(config.appliances) ? config.appliances.filter(Boolean) : [];
 
   const walls = [
@@ -156,12 +146,7 @@ function buildPrompt(config, useMask) {
     ? `Additional client instructions specific to this room — follow them precisely and let them override any conflicting instruction above: ${notes}.`
     : "";
 
-  const maskLine = useMask
-    ? "This image has a mask: you may only draw inside the white masked region, which marks exactly where the new kitchen goes. Everything outside the white mask is already fixed and protected — do not worry about it, focus entirely on filling the masked region with the new kitchen described below, blending naturally at the mask edges (matching floor line, wall color and lighting) with what is already outside the mask."
-    : "";
-
   const lines = [
-    maskLine,
     "This is a precise photo edit of the exact reference photo provided, not a new scene: same room, same photo, same camera angle and framing, same distance and lens perspective.",
     "Keep 100% identical and pixel-accurate, exactly as in the reference photo, in shape, color, material and position: the floor (same material, color and pattern), every wall (same color and texture), the ceiling, every window (same size, position and frame), and any technical or fixed equipment visible such as a boiler, water heater, radiator, thermostat, electrical panel, meter box, light switch, socket, pipe or vent.",
     "Every door must keep exactly the same type, height, width, position and opening mechanism as in the reference photo — including any full-height glazed door, French door, sliding door, porte-fenêtre or balcony door. Never convert a door into a smaller window, and never convert a window into a door.",
