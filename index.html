@@ -42,6 +42,11 @@
     .upload{border:1px dashed #cfc7b8;border-radius:10px;padding:14px;background:#fff;cursor:pointer;display:block}
     .upload small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
     #source{width:100%;margin-top:12px;border-radius:9px;display:none;max-height:190px;object-fit:cover}
+    #source.pickable{cursor:crosshair}
+    .sourceWrap{position:relative}
+    .wallMarker{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 2px var(--accent-dark);transform:translate(-50%,-50%);pointer-events:none}
+    .hint{font-size:11.5px;color:#6f6a5f;background:var(--panel);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5}
+    .hint span{display:block;font-weight:700;color:var(--ink);margin-top:2px}
     .warning{font-size:11px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;margin-top:8px;display:none}
     .estimate{background:var(--panel);border-radius:10px;padding:15px;line-height:1.6;font-size:13px;color:#4d4a41}
     .estimate strong{color:var(--ink)}
@@ -110,7 +115,8 @@
 
   <h2 class="section"><span class="n">6</span>Votre espace</h2>
   <label class="upload" for="photo">Importer la photo de la pièce <small>JPG, PNG ou WEBP · une vue large et bien éclairée est recommandée</small><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
-  <img id="source" alt="Photo de la pièce">
+  <div class="sourceWrap" id="sourceWrap"><img id="source" alt="Photo de la pièce"><div class="wallMarker hidden" id="wallMarker"></div></div>
+  <p class="hint hidden" id="wallPickHint">Implantation linéaire : cliquez sur le mur de la photo où vous voulez la cuisine.<span id="wallPickStatus"></span></p>
   <p class="warning" id="sourceWarning">Photo de faible résolution : pour un rendu plus précis, utilisez une photo d'au moins 1000 px de large.</p>
 
   <h2 class="section"><span class="n">7</span>Précisions pour l'IA</h2>
@@ -152,7 +158,8 @@ let selected={
   plinth:"Assortie aux façades",
   sink:"Sous plan inox",
   faucet:"Noir mat",
-  corner:"Meuble d'angle classique"
+  corner:"Meuble d'angle classique",
+  wallSide:null
 };
 let photoData=null;
 
@@ -214,8 +221,30 @@ function layouts(){
   $("#wall2box").classList.toggle("hidden",l==="linéaire");
   $("#wall3box").classList.toggle("hidden",l!=="en U");
   $("#cornerBox").classList.toggle("hidden",l==="linéaire");
+  updateWallPickUI();
   updateEstimate();
 }
+
+const wallSideLabels={left:"Gauche",center:"Centre / fond",right:"Droite"};
+function updateWallPickUI(){
+  const isLinear=$("#layout").value==="linéaire";
+  const active=isLinear&&photoData;
+  $("#source").classList.toggle("pickable",active);
+  $("#wallPickHint").classList.toggle("hidden",!active);
+  if(!isLinear){$("#wallMarker").classList.add("hidden")}
+  $("#wallPickStatus").textContent=selected.wallSide?`Mur sélectionné : ${wallSideLabels[selected.wallSide]}`:"Aucun mur sélectionné pour l'instant (mur par défaut utilisé).";
+}
+$("#source").addEventListener("click",e=>{
+  if($("#layout").value!=="linéaire"||!photoData)return;
+  const rect=e.currentTarget.getBoundingClientRect();
+  const ratio=(e.clientX-rect.left)/rect.width;
+  selected.wallSide=ratio<0.4?"left":ratio>0.6?"right":"center";
+  const marker=$("#wallMarker");
+  marker.style.left=(e.clientX-rect.left)+"px";
+  marker.style.top=(e.clientY-rect.top)+"px";
+  marker.classList.remove("hidden");
+  updateWallPickUI();
+});
 function modules(n){let r=Number(n)||0,a=[];for(const m of [90,80,60,50,40,30,20])while(r>=m){a.push(m);r-=m}return{a,r}}
 function updateEstimate(){
   const l=$("#layout").value,lines=[];
@@ -246,9 +275,12 @@ $("#photo").onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
   const {dataUrl,width,height}=await compactImage(f);
   photoData=dataUrl;
+  selected.wallSide=null;
+  $("#wallMarker").classList.add("hidden");
   $("#source").src=photoData;$("#source").style.display="block";
   $("#before").src=photoData;show("before");
   $("#sourceWarning").style.display=(width<1000||height<1000)?"block":"none";
+  updateWallPickUI();
 };
 
 async function compactImage(file){
@@ -278,6 +310,7 @@ $("#generate").onclick=async()=>{
       layout:$("#layout").value,
       wall1:$("#wall1").value,wall2:$("#wall2").value,wall3:$("#wall3").value,
       corner:$("#layout").value!=="linéaire"?selected.corner:null,
+      wallSide:$("#layout").value==="linéaire"?selected.wallSide:null,
       island:$("#island").checked?{
         width:$("#islandWidth").value,depth:$("#islandDepth").value,
         seating:$("#islandSeating").checked,feature:$("#islandFeature").value

@@ -99,9 +99,15 @@ function buildPrompt(config) {
       ].filter(Boolean).join(" ")
     : "Do not add extra light fixtures beyond the room's existing natural and ambient light.";
 
+  const wallSideText = {
+    left: "the wall visible on the LEFT side of the photo, as framed by the camera",
+    right: "the wall visible on the RIGHT side of the photo, as framed by the camera",
+    center: "the back wall, centered in the photo and facing the camera"
+  }[config.wallSide] || null;
+
   const layoutValue = config.layout || "linéaire";
   const layoutConstraint = /linéaire|linear/i.test(layoutValue)
-    ? "This is a strictly single-wall (linear) kitchen: place every cabinet, the worktop and every appliance along ONE wall only. Even if the room has a corner or a second visible wall, that adjacent wall must remain exactly as in the reference photo, with no cabinet, worktop or appliance placed on it."
+    ? `This is a strictly single-wall (linear) kitchen: place every cabinet, the worktop and every appliance along ONE wall only${wallSideText ? ` — specifically along ${wallSideText}` : ""}. Every other wall visible in the photo, including any corner and any adjacent wall, must remain exactly as in the reference photo, with absolutely no cabinet, worktop or appliance placed on it — do not wrap the kitchen around a corner.`
     : /en l\b/i.test(layoutValue)
     ? "This is an L-shaped kitchen across exactly two adjoining walls meeting at a right angle. Do not add cabinetry to any third wall."
     : /en u\b/i.test(layoutValue)
@@ -111,6 +117,15 @@ function buildPrompt(config) {
   const hasDishwasher = applianceList.some(a => /lave.vaisselle/i.test(a));
   const dishwasherLine = hasDishwasher
     ? "The dishwasher is fully integrated (encastré): it is hidden behind a decor door panel that exactly matches the surrounding cabinet fronts in color, material and style — no visible white or stainless appliance face, no visible control panel, it must look like a normal cabinet door."
+    : "";
+
+  const hasOven = applianceList.some(a => /four/i.test(a));
+  const hasHob = applianceList.some(a => /plaque/i.test(a));
+  const rangeConfusionLine = hasOven && hasHob
+    ? "The oven and the hob are two separate, physically distinct built-in appliances in two different locations: the oven is built into a tall cabinet column (or under the worktop only if there is no column space), and the hob is a separate flush cooktop set into the worktop, well away from the oven. Never merge them into a single freestanding range/cooker (gazinière) unit with an oven door directly below exposed burners."
+    : "";
+  const hobTypeLine = hasHob
+    ? "The hob (plaque de cuisson) is a flush induction cooktop: a smooth glass-ceramic surface sitting perfectly flat with the worktop, with no visible flame, no gas burners, no cast-iron grates and no control knobs."
     : "";
 
   const appliancesLine = applianceList.length
@@ -143,12 +158,14 @@ function buildPrompt(config) {
     config.upperCabinets ? "Include new upper wall cabinets fitted to the ceiling height, without covering any window." : "Do not include upper wall cabinets, keep the wall above the worktop open.",
     appliancesLine,
     dishwasherLine,
+    rangeConfusionLine,
+    hobTypeLine,
     `Sink: ${config.sink || "stainless steel undermount"}, a single sink only. Faucet finish: ${config.faucet || "matte black"}, a single faucet only.`,
     lighting,
     "Use standard 19 mm melamine cabinet carcasses, filler panels against walls and finished end panels on exposed sides, fitted around any window, door, boiler or radiator exactly where it already is.",
     "Respect real construction scale, realistic joins, shadows, reflections and natural perspective — the kitchen must look physically built in this exact room, not pasted on.",
     "Photorealistic single wide shot of the whole kitchen, professional interior photography, natural color grading. No collage, no split screen, no before/after comparison, no grid of images, no text, no logo, no watermark, no interface, no people, no pets.",
-    "Final check before rendering: the floor, walls, ceiling, every window, every door (including any porte-fenêtre or balcony door, which must stay a door) and any boiler, radiator or other technical equipment must remain exactly as in the original photo — the kitchen layout must match the requested wall count exactly, and only the kitchen furniture has changed."
+    `Final check before rendering: the floor, walls, ceiling, every window, every door (including any porte-fenêtre or balcony door, which must stay a door) and any boiler, radiator or other technical equipment must remain exactly as in the original photo — the kitchen layout must match the requested wall count exactly${wallSideText ? ` (single wall: ${wallSideText})` : ""}, the oven and hob must stay two separate appliances, and only the kitchen furniture has changed.`
   ].filter(Boolean);
 
   return lines.join(" ");
