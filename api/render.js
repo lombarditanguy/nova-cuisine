@@ -81,11 +81,13 @@ function buildPrompt(config) {
   ].filter(Boolean).join(", ");
 
   const noHandles = /push|sans poignée/i.test(config.handleType || "") || /sans poignée/i.test(config.doorStyle || "");
+  const handleColorValue = config.handleColor || "black";
+  const handleShapeWord = /bouton/i.test(config.handleType || "") ? "round knobs" : "bar handles";
   const handleDescriptor = noHandles
     ? "no visible handles or knobs anywhere: push-to-open fronts, perfectly flush and seamless"
     : /bouton/i.test(config.handleType || "")
-    ? `small round KNOBS only — one compact individual round knob per door and drawer, absolutely NOT a long bar handle — in ${config.handleColor || "black"} finish`
-    : `long bar/pull HANDLES only — a single straight bar mounted on each door and drawer, absolutely NOT small round knobs — in ${config.handleColor || "black"} finish`;
+    ? `small round KNOBS in ${handleColorValue.toUpperCase()} finish only — one compact individual round knob per door and drawer, absolutely NOT a long bar handle, and NOT any color other than ${handleColorValue}`
+    : `long bar/pull HANDLES in ${handleColorValue.toUpperCase()} finish only — a single straight bar mounted on each door and drawer, absolutely NOT small round knobs, and NOT any color other than ${handleColorValue}`;
 
   const island = config.island
     ? `Add a freestanding kitchen island, ${config.island.width || 140} by ${config.island.depth || 90} cm, matching the same cabinet fronts and worktop.${
@@ -159,7 +161,7 @@ function buildPrompt(config) {
     "Standard 19 mm melamine cabinet carcasses, filler and end panels fitted around any window, door, boiler or radiator exactly where it already is.",
     "Realistic construction scale, joins, shadows and perspective — the kitchen must look physically built in this room, not pasted on.",
     "Photorealistic single wide shot, professional interior photography. No collage, no split screen, no text, no logo, no watermark, no people, no pets.",
-    `Reminder of the mandatory specification: cabinet fronts exactly ${config.facades || "matte white"} (not the old color), worktop ${config.worktop || "white quartz"}, plinth exactly ${config.plinth || "matching the cabinet fronts"} (not the old color), hardware ${noHandles ? "no handles/knobs" : /bouton/i.test(config.handleType || "") ? "round knobs, not bar handles" : "bar handles, not round knobs"}, upper wall cabinets ${config.upperCabinets ? "present" : "absent"}, single-wall layout${wallSideText ? ` on ${wallSideText}` : ""} with no corner.`
+    `Reminder of the mandatory specification: cabinet fronts exactly ${config.facades || "matte white"} (not the old color), worktop ${config.worktop || "white quartz"}, plinth exactly ${config.plinth || "matching the cabinet fronts"} (not the old color), hardware ${noHandles ? "no handles/knobs" : `${handleShapeWord} in ${handleColorValue} finish (not another color, not another shape)`}, upper wall cabinets ${config.upperCabinets ? "present" : "absent"}, single-wall layout${wallSideText ? ` on ${wallSideText}` : ""} with no corner.`
   ].filter(Boolean);
 
   return lines.join(" ");
