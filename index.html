@@ -132,19 +132,18 @@
     @media(max-width:900px){.nav-links{display:none}}
 
     /* hero */
-    .hero{position:relative;overflow:hidden;padding:70px 5vw 80px;background:linear-gradient(180deg,#f7f9ff,#fff)}
-    .hero::before{content:"";position:absolute;top:-140px;left:-100px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,#dbe4ff,transparent 70%);pointer-events:none}
-    .hero::after{content:"";position:absolute;bottom:-160px;right:-110px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,var(--oak-soft),transparent 70%);pointer-events:none}
+    .hero{position:relative;overflow:hidden;padding:150px 5vw 110px;background:var(--anthracite)}
+    .hero-bg{position:absolute;inset:0;z-index:0}
+    .hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center 35%}
+    .hero-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,23,26,.72) 0%,rgba(21,23,26,.58) 45%,rgba(21,23,26,.82) 100%)}
     .hero-inner{position:relative;z-index:1;width:min(760px,100%);margin:0 auto;text-align:center}
-    .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700;color:var(--blue);margin:0 0 14px}
-    .hero h1{font-size:clamp(28px,4.4vw,46px);margin:0 0 18px;font-weight:800}
-    .hero p.lead{font-size:17px;color:var(--muted);margin:0 auto 30px;max-width:600px}
+    .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700;color:#bcd0ff;margin:0 0 14px}
+    .hero h1{font-size:clamp(28px,4.4vw,46px);margin:0 0 18px;font-weight:800;color:#fff}
+    .hero p.lead{font-size:17px;color:#dadde2;margin:0 auto 30px;max-width:600px}
     .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-    .cta-secondary{border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px 18px;font-weight:700;font-size:13px;text-decoration:none}
-    .trust-row{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin-top:44px;color:var(--muted);font-size:12px;letter-spacing:.03em}
-    .hero-photo{position:relative;z-index:1;margin:52px auto 0;width:min(900px,100%);border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
-    .hero-photo img{display:block;width:100%;height:auto;max-height:520px;object-fit:cover}
-    .hero-photo figcaption{position:absolute;left:18px;bottom:18px;background:#fff;color:var(--ink);font-size:12px;font-weight:800;padding:8px 14px;border-radius:20px;box-shadow:var(--shadow)}
+    .cta-secondary{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.08);color:#fff;border-radius:8px;padding:11px 18px;font-weight:700;font-size:13px;text-decoration:none;backdrop-filter:blur(2px)}
+    .trust-row{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin-top:44px;color:#c7cad0;font-size:12px;letter-spacing:.03em}
+    .hero-credit{position:absolute;z-index:1;right:16px;bottom:12px;color:rgba(255,255,255,.75);font-size:11px}
 
     /* generic section titles */
     .section-head{text-align:center;max-width:640px;margin:0 auto 40px}
@@ -268,6 +267,7 @@
 <main>
 
   <section class="hero" id="accueil">
+    <div class="hero-bg"><img src="assets/realisation-1.png" alt="Cuisine sur mesure réalisée par NOVA Cuisine, façades bois et crédence effet béton" width="572" height="323" loading="eager"></div>
     <div class="hero-inner">
       <p class="eyebrow">Cuisines sur mesure</p>
       <h1>Visualisez votre future cuisine par IA, dans votre propre pièce, avant de commander</h1>
@@ -281,10 +281,8 @@
         <span>Rendu généré par IA en quelques minutes</span>
         <span>Devis personnalisé sur demande</span>
       </div>
-      <figure class="hero-photo">
-        <img src="assets/realisation-1.png" alt="Cuisine sur mesure réalisée par NOVA Cuisine, façades bois et crédence effet béton" width="572" height="323" loading="eager">
-        <figcaption>Une de nos réalisations</figcaption>
-      </figure>
+    </div>
+    <p class="hero-credit">Une de nos réalisations</p>
     </div>
   </section>
 
