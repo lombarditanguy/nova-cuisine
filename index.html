@@ -109,7 +109,7 @@
   </script>
 
   <style>
-    :root{--ink:#15171a;--muted:#6d737b;--line:#e6e8ea;--blue:#285cff;--blue-dark:#1a44cc;--panel:#f7f8f9;--bg-soft:#fbfbfc}
+    :root{--ink:#15171a;--muted:#6d737b;--line:#e6e8ea;--blue:#285cff;--blue-dark:#1a44cc;--panel:#eef1f8;--bg-soft:#fbfbfc;--oak:#b9764a;--oak-soft:#f8ece0;--shadow:0 10px 30px -10px rgba(21,23,26,.14)}
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.5}
@@ -130,14 +130,25 @@
     @media(max-width:900px){.nav-links{display:none}}
 
     /* hero */
-    .hero{padding:70px 5vw 60px;background:linear-gradient(180deg,#f7f9ff,#fff)}
-    .hero-inner{width:min(760px,100%);margin:0 auto;text-align:center}
+    .hero{position:relative;overflow:hidden;padding:70px 5vw 80px;background:linear-gradient(180deg,#f7f9ff,#fff)}
+    .hero::before{content:"";position:absolute;top:-140px;left:-100px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,#dbe4ff,transparent 70%);pointer-events:none}
+    .hero::after{content:"";position:absolute;bottom:-160px;right:-110px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,var(--oak-soft),transparent 70%);pointer-events:none}
+    .hero-inner{position:relative;z-index:1;width:min(760px,100%);margin:0 auto;text-align:center}
     .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700;color:var(--blue);margin:0 0 14px}
     .hero h1{font-size:clamp(28px,4.4vw,46px);margin:0 0 18px;font-weight:800}
     .hero p.lead{font-size:17px;color:var(--muted);margin:0 auto 30px;max-width:600px}
     .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
     .cta-secondary{border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px 18px;font-weight:700;font-size:13px;text-decoration:none}
     .trust-row{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin-top:44px;color:var(--muted);font-size:12px;letter-spacing:.03em}
+    .hero-visual{position:relative;z-index:1;margin:52px auto 0;width:min(880px,100%);border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);overflow:hidden;text-align:left}
+    .hero-visual-bar{display:flex;gap:6px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+    .hero-visual-bar span{width:9px;height:9px;border-radius:50%;background:#d7dbe0;display:inline-block}
+    .hero-visual-body{display:grid;grid-template-columns:1fr 1fr;min-height:280px}
+    .hero-visual-before,.hero-visual-after{display:flex;align-items:flex-end;padding:18px;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;position:relative}
+    .hero-visual-before{background:linear-gradient(135deg,#c9ccd1,#8b9096)}
+    .hero-visual-after{background:linear-gradient(135deg,var(--blue),#6f8bff)}
+    .hero-visual-badge{position:absolute;top:16px;right:16px;background:#fff;color:var(--ink);font-size:11px;font-weight:800;padding:6px 12px;border-radius:20px;box-shadow:var(--shadow)}
+    @media(max-width:600px){.hero-visual-body{grid-template-columns:1fr}}
 
     /* generic section titles */
     .section-head{text-align:center;max-width:640px;margin:0 auto 40px}
@@ -149,16 +160,19 @@
 
     /* steps */
     .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;width:min(1000px,100%);margin:0 auto}
-    .step-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
-    .step-num{width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-bottom:16px}
+    .step-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;box-shadow:var(--shadow)}
+    .step-num{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-bottom:16px}
+    .step-card:nth-child(2) .step-num{background:var(--oak)}
+    .step-card:nth-child(3) .step-num{background:var(--ink)}
     .step-card h3{font-size:16px;margin:0 0 8px}
     .step-card p{font-size:13.5px;color:var(--muted);margin:0}
     @media(max-width:850px){.steps-grid{grid-template-columns:1fr}}
 
     /* advantages */
     .adv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;width:min(1100px,100%);margin:0 auto}
-    .adv-card{padding:22px 18px;border-radius:12px}
-    .adv-card svg{width:26px;height:26px;stroke:var(--blue);margin-bottom:14px}
+    .adv-card{padding:24px 20px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow)}
+    .adv-icon{width:46px;height:46px;border-radius:12px;background:var(--panel);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+    .adv-icon svg{width:22px;height:22px;stroke:var(--blue)}
     .adv-card h3{font-size:14.5px;margin:0 0 6px}
     .adv-card p{font-size:13px;color:var(--muted);margin:0}
     @media(max-width:900px){.adv-grid{grid-template-columns:1fr 1fr}}
@@ -166,11 +180,12 @@
 
     /* gallery */
     .gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;width:min(1100px,100%);margin:0 auto}
-    .gallery-pair{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
-    .gallery-visual{display:grid;grid-template-columns:1fr 1fr;height:160px}
+    .gallery-pair{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+    .gallery-visual{display:grid;grid-template-columns:1fr 1fr;height:160px;position:relative}
     .gallery-before,.gallery-after{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff}
     .gallery-before{background:linear-gradient(135deg,#9aa1a8,#6d737b)}
     .gallery-after{background:linear-gradient(135deg,var(--blue),#5f7dff)}
+    .gallery-visual::after{content:"IA";position:absolute;top:10px;right:10px;background:#fff;color:var(--ink);font-size:10px;font-weight:800;letter-spacing:.06em;padding:4px 8px;border-radius:14px;box-shadow:var(--shadow)}
     .gallery-cap{padding:14px 16px;font-size:12.5px;color:var(--muted)}
     .gallery-note{text-align:center;color:var(--muted);font-size:12px;margin:22px auto 0;max-width:520px}
     @media(max-width:850px){.gallery-grid{grid-template-columns:1fr}}
@@ -180,7 +195,7 @@
     .configurator-intro h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 12px}
     .configurator-intro p.title{font-size:28px;font-weight:800;margin:0 0 12px}
     .configurator-intro p.sub{color:var(--muted);font-size:15px;margin:0}
-    .tool{display:grid;grid-template-columns:minmax(330px,430px) 1fr;border:1px solid var(--line);border-radius:16px;overflow:hidden;width:min(1180px,100%);margin:0 auto;min-height:640px}
+    .tool{display:grid;grid-template-columns:minmax(330px,430px) 1fr;border:1px solid var(--line);border-radius:16px;overflow:hidden;width:min(1180px,100%);margin:0 auto;min-height:640px;box-shadow:var(--shadow)}
     .tool aside{padding:34px;border-right:1px solid var(--line);overflow:auto}
     .tool h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
     .tool h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;margin:26px 0 10px;color:#555}
@@ -208,8 +223,10 @@
 
     /* testimonials */
     .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;width:min(1050px,100%);margin:0 auto}
-    .testi-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px}
-    .testi-stars{color:#e2a03a;font-size:14px;margin-bottom:12px;letter-spacing:2px}
+    .testi-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:var(--shadow)}
+    .testi-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .testi-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;flex:none}
+    .testi-stars{color:#e2a03a;font-size:14px;letter-spacing:2px}
     .testi-card p.quote{font-size:14px;color:#3c4148;margin:0 0 16px}
     .testi-author{font-size:12.5px;font-weight:700;color:var(--muted)}
     @media(max-width:850px){.testi-grid{grid-template-columns:1fr}}
@@ -268,6 +285,13 @@
         <span>Rendu généré par IA en quelques minutes</span>
         <span>Devis personnalisé sur demande</span>
       </div>
+      <div class="hero-visual">
+        <div class="hero-visual-bar"><span></span><span></span><span></span></div>
+        <div class="hero-visual-body">
+          <div class="hero-visual-before">Photo de votre pièce</div>
+          <div class="hero-visual-after"><span class="hero-visual-badge">Rendu généré par IA</span>Votre nouvelle cuisine</div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -303,22 +327,22 @@
     </div>
     <div class="adv-grid">
       <div class="adv-card">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M8 5l1.2-2h5.6L16 5"/></svg>
+        <div class="adv-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M8 5l1.2-2h5.6L16 5"/></svg></div>
         <h3>Rendu réaliste par IA</h3>
         <p>Visualisez votre cuisine dans votre propre pièce, pas dans un décor générique.</p>
       </div>
       <div class="adv-card">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-7h6v7"/></svg>
+        <div class="adv-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-7h6v7"/></svg></div>
         <h3>100 % sur mesure</h3>
         <p>Implantation, dimensions, façades et finitions adaptées à votre espace exact.</p>
       </div>
       <div class="adv-card">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="5"/></svg>
+        <div class="adv-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="5"/></svg></div>
         <h3>Composition détaillée</h3>
         <p>Le configurateur calcule le débit des caissons mélaminé 19 mm selon vos dimensions.</p>
       </div>
       <div class="adv-card">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <div class="adv-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
         <h3>Gratuit et sans engagement</h3>
         <p>Configurez et visualisez librement, le devis n'intervient qu'après votre validation.</p>
       </div>
@@ -383,17 +407,17 @@
     </div>
     <div class="testi-grid">
       <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
+        <div class="testi-top"><div class="testi-avatar" style="background:var(--blue)">C</div><div class="testi-stars">★★★★★</div></div>
         <p class="quote">« Voir le rendu dans notre propre cuisine avant de commander nous a vraiment aidés à choisir les finitions. »</p>
         <div class="testi-author">Client — exemple à remplacer</div>
       </div>
       <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
+        <div class="testi-top"><div class="testi-avatar" style="background:var(--oak)">M</div><div class="testi-stars">★★★★★</div></div>
         <p class="quote">« Le configurateur est simple à utiliser et le rendu généré donne une idée très claire du résultat final. »</p>
         <div class="testi-author">Client — exemple à remplacer</div>
       </div>
       <div class="testi-card">
-        <div class="testi-stars">★★★★★</div>
+        <div class="testi-top"><div class="testi-avatar" style="background:var(--ink)">L</div><div class="testi-stars">★★★★★</div></div>
         <p class="quote">« Nous avons pu comparer plusieurs implantations avant de nous décider, sans nous déplacer. »</p>
         <div class="testi-author">Client — exemple à remplacer</div>
       </div>
