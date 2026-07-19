@@ -157,11 +157,11 @@ function buildPrompt(config) {
     layoutConstraint,
     corner,
     island,
-    `Cabinet fronts: ${config.doorStyle || "flat"} style, ${config.facades || "matte white"} finish.`,
-    `Worktop: ${config.worktop || "white quartz"}.`,
-    `Backsplash: ${config.credence || "matching the worktop"}.`,
+    `Cabinet fronts: ${config.doorStyle || "flat"} style, in ${config.facades || "matte white"} — this is the ONLY color allowed for the cabinet fronts, completely replacing whatever color the old cabinets had in the reference photo. Do not keep, blend, average or let any trace of the old cabinet color show through.`,
+    `Worktop: ${config.worktop || "white quartz"} — this exact material and color replaces the old worktop entirely, with zero influence from the old worktop's color.`,
+    `Backsplash: ${config.credence || "matching the worktop"} — replaces the old backsplash/tiles entirely, in this exact color, not the old tile color.`,
     `Cabinet hardware (mandatory, identical on every single door and drawer, never mixed): ${handleDescriptor}.`,
-    `Plinth (kickboard): ${config.plinth || "matching the cabinet fronts"}.`,
+    `Plinth (kickboard): ${config.plinth || "matching the cabinet fronts"} — this exact color, not the old plinth's color.`,
     upperLine,
     appliancesLine,
     dishwasherLine,
@@ -172,7 +172,7 @@ function buildPrompt(config) {
     "Use standard 19 mm melamine cabinet carcasses, filler panels against walls and finished end panels on exposed sides, fitted around any window, door, boiler or radiator exactly where it already is.",
     "Respect real construction scale, realistic joins, shadows, reflections and natural perspective — the kitchen must look physically built in this exact room, not pasted on.",
     "Photorealistic single wide shot of the whole kitchen, professional interior photography, natural color grading. No collage, no split screen, no before/after comparison, no grid of images, no text, no logo, no watermark, no interface, no people, no pets.",
-    `Final check before rendering: the floor, walls, ceiling, every window, every door (including any porte-fenêtre or balcony door, which must stay a door) and any boiler, radiator or other technical equipment must remain exactly as in the original photo — the kitchen layout must match the requested wall count exactly${wallSideText ? ` (single wall: ${wallSideText})` : ""}, the oven and hob must stay two separate appliances, the cabinet hardware must exactly match the requested type (${noHandles ? "no handles/knobs" : /bouton/i.test(config.handleType || "") ? "round knobs, not bar handles" : "bar handles, not round knobs"}), upper wall cabinets must be ${config.upperCabinets ? "clearly present" : "absent"} exactly as requested, and only the kitchen furniture has changed.`
+    `Final check before rendering: the floor, walls, ceiling, every window, every door (including any porte-fenêtre or balcony door, which must stay a door) and any boiler, radiator or other technical equipment must remain exactly as in the original photo — the kitchen layout must match the requested wall count exactly${wallSideText ? ` (single wall: ${wallSideText})` : ""}, the oven and hob must stay two separate appliances, the cabinet hardware must exactly match the requested type (${noHandles ? "no handles/knobs" : /bouton/i.test(config.handleType || "") ? "round knobs, not bar handles" : "bar handles, not round knobs"}), upper wall cabinets must be ${config.upperCabinets ? "clearly present" : "absent"} exactly as requested, the cabinet fronts must be exactly ${config.facades || "matte white"} and the plinth exactly ${config.plinth || "matching the cabinet fronts"} — neither the old cabinet color nor the old plinth color from the reference photo may remain — and only the kitchen furniture has changed.`
   ].filter(Boolean);
 
   return lines.join(" ");
