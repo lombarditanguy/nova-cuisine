@@ -40,7 +40,7 @@
         "@id": "https://www.nova-cuisine.fr/#organization",
         "name": "NOVA Cuisine",
         "url": "https://www.nova-cuisine.fr/",
-        "description": "Fabricant et concepteur de cuisines sur mesure, avec configurateur en ligne et rendu de visualisation généré par intelligence artificielle.",
+        "description": "Concepteur et vendeur de cuisines sur mesure livrées en kit à monter soi-même (pose non incluse), avec configurateur en ligne et rendu de visualisation généré par intelligence artificielle.",
         "areaServed": "France",
         "email": "lombardi.tanguy@gmail.com",
         "telephone": "+33619876643",
@@ -65,11 +65,11 @@
       },
       {
         "@type": "Service",
-        "name": "Conception et fabrication de cuisine sur mesure",
-        "serviceType": "Aménagement de cuisine sur mesure",
+        "name": "Conception et vente de cuisine sur mesure en kit",
+        "serviceType": "Cuisine sur mesure en kit, à monter soi-même",
         "provider": { "@id": "https://www.nova-cuisine.fr/#organization" },
         "areaServed": "France",
-        "description": "Étude, configuration et fabrication de cuisines sur mesure (implantation linéaire, en L ou en U), avec visualisation du rendu par intelligence artificielle avant commande."
+        "description": "Conception et vente de cuisines sur mesure (implantation linéaire, en L ou en U), livrées en kit à monter soi-même ou par un poseur de votre choix. La pose n'est pas assurée par NOVA Cuisine. Visualisation du rendu par intelligence artificielle avant commande."
       },
       {
         "@type": "FAQPage",
@@ -102,7 +102,12 @@
           {
             "@type": "Question",
             "name": "Comment obtenir un devis après avoir configuré ma cuisine ?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Une fois votre configuration et votre rendu générés, vous pouvez nous contacter via le formulaire de contact du site pour recevoir un devis détaillé et planifier une étude technique." }
+            "acceptedAnswer": { "@type": "Answer", "text": "Une fois votre configuration et votre rendu générés, un formulaire de demande de devis apparaît directement sous l'aperçu : renseignez vos coordonnées pour recevoir un devis détaillé." }
+          },
+          {
+            "@type": "Question",
+            "name": "Est-ce que NOVA Cuisine pose la cuisine ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Non. NOVA Cuisine conçoit et vend des cuisines sur mesure livrées en kit, prêtes à monter. Le montage est à réaliser vous-même ou par un poseur ou artisan de votre choix ; la pose n'est pas incluse ni assurée par NOVA Cuisine." }
           }
         ]
       }
@@ -164,7 +169,7 @@
     @media(max-width:850px){.steps-grid{grid-template-columns:1fr}}
 
     /* advantages */
-    .adv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;width:min(1100px,100%);margin:0 auto}
+    .adv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;width:min(1100px,100%);margin:0 auto}
     .adv-card{padding:24px 20px;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow)}
     .adv-icon{width:46px;height:46px;border-radius:12px;background:var(--panel);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
     .adv-icon svg{width:22px;height:22px;stroke:var(--blue)}
@@ -225,6 +230,8 @@
     .previewTop{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:17px}
     .status{font-size:12px;color:#16855a;background:#e7f8f0;padding:6px 10px;border-radius:20px}
     .tabs{display:flex;gap:25px;margin:24px auto 0;width:min(880px,100%)}.tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:0 0 9px;cursor:pointer;color:#737980;font:inherit;font-size:13px}.tab.active{color:var(--ink);border-color:var(--ink)}
+    .canvas-col{display:flex;flex-direction:column;flex:1;min-height:0}
+    .after-disclaimer{width:min(880px,100%);margin:0 auto 10px;text-align:center;font-size:11.5px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;line-height:1.5}
     .canvas{flex:1;width:min(880px,100%);margin:0 auto;display:grid;place-items:center;min-height:420px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 18px 48px #1820440d}
     .canvas img{max-width:100%;max-height:560px;display:none;object-fit:contain}
     .mediaWrap{position:relative;display:none;line-height:0}
@@ -233,6 +240,9 @@
     .loading{display:none;text-align:center;color:#555}
     .spinner{width:30px;height:30px;border:3px solid #d9e2ff;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .lead-box{width:min(880px,100%);margin:20px auto 0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px;box-shadow:var(--shadow)}
+    .lead-box h3{font-size:16px;margin:0 0 6px}
+    .lead-box .lead-sub{font-size:13px;color:var(--muted);margin:0 0 6px}
     @media(max-width:850px){.tool{grid-template-columns:1fr}.tool aside{border-right:0;border-bottom:1px solid var(--line)}}
 
     /* testimonials */
@@ -299,6 +309,7 @@
         <span>Configuration gratuite</span>
         <span>Rendu généré par IA en quelques minutes</span>
         <span>Devis personnalisé sur demande</span>
+        <span>Livrée en kit — pose non incluse</span>
       </div>
     </div>
     <p class="hero-credit">Une de nos réalisations</p>
@@ -355,6 +366,11 @@
         <div class="adv-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
         <h3>Gratuit et sans engagement</h3>
         <p>Configurez et visualisez librement, le devis n'intervient qu'après votre validation.</p>
+      </div>
+      <div class="adv-card">
+        <div class="adv-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
+        <h3>Livrée en kit</h3>
+        <p>Cuisine sur mesure livrée en kit à monter soi-même ou par le poseur de votre choix — la pose n'est pas assurée par NOVA Cuisine.</p>
       </div>
     </div>
   </section>
@@ -443,11 +459,29 @@
         <div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div>
         <p class="disclaimer">Aperçu généré par IA à visée illustrative — la composition exacte (nombre et dimensions des meubles) est celle du panneau <strong>Composition estimée</strong>, calculée indépendamment de l'image.</p>
         <p class="hint hidden" id="wallPickHintBig">Implantation linéaire : cliquez sur le mur de la photo où vous voulez la cuisine.</p>
-        <div class="canvas">
-          <div class="mediaWrap" id="beforeWrap"><img id="before" alt="Photo source"><div class="wallMarker hidden" id="wallMarkerBig"></div></div>
-          <img id="after" alt="Rendu de la cuisine généré">
-          <div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div>
-          <div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div>
+        <div class="canvas-col">
+          <p class="disclaimer after-disclaimer hidden" id="afterDisclaimer">Cette image sert d'illustration pour vous donner une idée des codes couleurs et de la disposition — elle ne constitue pas un plan fiable ni un engagement sur les dimensions ou l'implantation exactes.</p>
+          <div class="canvas">
+            <div class="mediaWrap" id="beforeWrap"><img id="before" alt="Photo source"><div class="wallMarker hidden" id="wallMarkerBig"></div></div>
+            <img id="after" alt="Rendu de la cuisine généré">
+            <div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div>
+            <div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div>
+          </div>
+        </div>
+
+        <div class="lead-box hidden" id="leadBox">
+          <h3>Ce projet vous plaît ?</h3>
+          <p class="lead-sub">Laissez vos coordonnées pour recevoir un devis personnalisé — nous vous recontactons rapidement.</p>
+          <form id="leadForm">
+            <div class="row">
+              <div><label for="leadName">Nom</label><input id="leadName" type="text" required autocomplete="name"></div>
+              <div><label for="leadPhone">Téléphone</label><input id="leadPhone" type="tel" autocomplete="tel"></div>
+            </div>
+            <label for="leadEmail">Email</label><input id="leadEmail" type="email" required autocomplete="email">
+            <label for="leadMessage">Message (optionnel)</label><textarea id="leadMessage" maxlength="500" placeholder="Précisions sur votre projet, délai souhaité…"></textarea>
+            <button class="generate" type="submit">Demander mon devis</button>
+            <p class="note">Ouvre votre application e-mail avec votre demande pré-remplie, à destination de NOVA Cuisine.</p>
+          </form>
         </div>
       </section>
     </div>
@@ -506,7 +540,11 @@
       </details>
       <details class="faq-item">
         <summary>Comment obtenir un devis après avoir configuré ma cuisine ?</summary>
-        <p>Une fois votre configuration et votre rendu générés, contactez-nous via le formulaire de contact du site pour recevoir un devis détaillé et planifier une étude technique.</p>
+        <p>Une fois votre configuration et votre rendu générés, un formulaire de demande de devis apparaît directement sous l'aperçu : renseignez vos coordonnées pour recevoir un devis détaillé.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Est-ce que NOVA Cuisine pose la cuisine ?</summary>
+        <p>Non. NOVA Cuisine conçoit et vend des cuisines sur mesure livrées en kit, prêtes à monter. Le montage est à réaliser vous-même ou par un poseur ou artisan de votre choix ; la pose n'est pas incluse ni assurée par NOVA Cuisine.</p>
       </details>
     </div>
   </section>
@@ -567,6 +605,7 @@ let selected={
   wallSide:null
 };
 let photoData=null;
+let lastRenderUrl=null;
 
 function dot(h){return h?`<span class="dot" style="background:${h}"></span>`:""}
 
@@ -685,6 +724,7 @@ function show(which){
   $("#beforeWrap").style.display=which==="before"&&photoData?"inline-block":"none";
   $("#after").style.display=which==="after"&&$("#after").src?"block":"none";
   $("#empty").style.display=(which==="before"&&!photoData)||(which==="after"&&!$("#after").src)?"block":"none";
+  $("#afterDisclaimer").classList.toggle("hidden",!(which==="after"&&$("#after").src));
 }
 $$(".tab").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
@@ -760,13 +800,44 @@ $("#generate").onclick=async()=>{
       url=d.imageUrl;
     }
     if(!url)throw Error("Le rendu est toujours en cours. Attendez une minute puis relancez la génération.");
-    $("#after").src=url;show("after");$("#status").textContent="Rendu prêt";
+    $("#after").src=url;lastRenderUrl=url;show("after");$("#status").textContent="Rendu prêt";
+    $("#leadBox").classList.remove("hidden");
   }catch(e){
     $("#error").textContent=e.message;$("#error").style.display="block";$("#status").textContent="Erreur";
   }finally{
     $("#loading").style.display="none";btn.disabled=false;
   }
 };
+
+$("#leadForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const name=$("#leadName").value.trim();
+  const email=$("#leadEmail").value.trim();
+  const phone=$("#leadPhone").value.trim();
+  const message=$("#leadMessage").value.trim();
+  const configLines=[
+    `Implantation : ${$("#layout").value}${selected.corner&&$("#layout").value!=="linéaire"?` (angle : ${selected.corner})`:""}`,
+    $("#island").checked?`Îlot central : ${$("#islandWidth").value}x${$("#islandDepth").value} cm`:"",
+    `Style de porte : ${selected.doorStyle}`,
+    `Façades : ${selected.facades} · Plan de travail : ${selected.worktop} · Crédence : ${selected.credence}`,
+    `Poignées : ${selected.handleType} ${selected.handleColor} · Plinthe : ${selected.plinth}`,
+    `Électroménager : ${[...selected.appliances].join(", ")||"aucun"}`,
+    `Évier : ${selected.sink} · Robinetterie : ${selected.faucet}`,
+    lastRenderUrl?`Rendu généré : ${lastRenderUrl}`:""
+  ].filter(Boolean);
+  const bodyLines=[
+    `Nom : ${name}`,
+    `Email : ${email}`,
+    phone?`Téléphone : ${phone}`:"",
+    "",
+    message?`Message :\n${message}`:"",
+    "",
+    "Configuration :",
+    ...configLines
+  ].filter(Boolean);
+  const subject=`Demande de devis NOVA Cuisine — ${name||"nouveau contact"}`;
+  window.location.href=`mailto:lombardi.tanguy@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+});
 </script>
 </body>
 </html>

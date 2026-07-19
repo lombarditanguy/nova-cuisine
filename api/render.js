@@ -116,9 +116,9 @@ function buildPrompt(config) {
   const layoutConstraint = /linéaire|linear/i.test(layoutValue)
     ? `This is a strictly single-wall (linear) kitchen, like a single straight sideboard: one flat, straight run of cabinets with NO bend, NO corner and NO angle anywhere in it, placed along ONE wall only${wallSideText ? ` — specifically along ${wallSideText}` : ""}. IMPORTANT: even if the existing kitchen counter in the reference photo currently wraps around a corner in an L shape, you must NOT reproduce that L-shaped footprint — the new linear kitchen stops at the corner. Every other wall visible in the photo, including the corner and any adjacent wall, must end up completely bare (only wall tiles or paint visible, no counter, no cabinet, no worktop, no appliance at all on that other wall).`
     : /en l\b/i.test(layoutValue)
-    ? "This is an L-shaped kitchen across exactly two adjoining walls meeting at a right angle. Do not add cabinetry to any third wall."
+    ? "This is an L-shaped kitchen: cabinetry on exactly TWO adjoining walls meeting at a right-angle corner, with a corner unit joining them. Do not drop either wall — both must be fitted. Do not add cabinetry to any third wall."
     : /en u\b/i.test(layoutValue)
-    ? "This is a U-shaped kitchen across exactly three walls. Do not extend cabinetry beyond these three walls."
+    ? "This is a U-shaped kitchen: cabinetry on exactly THREE walls (two side walls plus the back wall between them), with a corner unit at each of the two junctions. All three walls must be fitted with cabinetry — do NOT simplify this into an L-shape or single-wall layout by leaving one of the three walls bare, even if that is easier given the room's proportions. Do not extend cabinetry beyond these three walls."
     : "";
 
   const hasDishwasher = applianceList.some(a => /lave.vaisselle/i.test(a));
@@ -144,7 +144,7 @@ function buildPrompt(config) {
 
   const lines = [
     targetSummaryLine,
-    "This is a precise photo edit of the exact reference photo, not a new scene: same room, same camera angle, same framing and perspective.",
+    "This is a precise photo edit of the exact reference photo, not a new scene: same room, same exact camera angle, same framing, same perspective and same focal point as the input photo — do not rotate, pan, zoom or reframe the shot in any way.",
     "Keep identical, exactly as in the reference photo: the floor, every wall, the ceiling, every window, and any fixed equipment such as a boiler, radiator, electrical panel, socket or pipe.",
     "Every door keeps exactly its original type, size, position and opening mechanism — including any full-height glazed door, sliding door, porte-fenêtre or balcony door. Never convert a door into a window or a window into a door.",
     "Remove the existing kitchen cabinets, worktop, appliances and backsplash, and rebuild the new kitchen specified above in their place. Do not recolor or restyle the old kitchen — replace it entirely. Nothing else in the room changes.",
