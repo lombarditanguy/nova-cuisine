@@ -34,6 +34,7 @@ export default async function handler(req, res) {
 
     const output = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output || null;
     return res.status(200).json({
+      id: prediction.id,
       status: prediction.status,
       imageUrl: output,
       error: prediction.error || null
