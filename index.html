@@ -47,6 +47,7 @@
     .wallMarker{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 2px var(--accent-dark);transform:translate(-50%,-50%);pointer-events:none}
     .hint{font-size:11.5px;color:#6f6a5f;background:var(--panel);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5}
     .hint span{display:block;font-weight:700;color:var(--ink);margin-top:2px}
+    #wallPickHintBig{width:min(900px,100%);margin:10px auto 0;text-align:center}
     .warning{font-size:11px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;margin-top:8px;display:none}
     .estimate{background:var(--panel);border-radius:10px;padding:15px;line-height:1.6;font-size:13px;color:#4d4a41}
     .estimate strong{color:var(--ink)}
@@ -65,6 +66,9 @@
     .tab.active{color:var(--ink);border-color:var(--accent)}
     .canvas{flex:1;width:min(900px,100%);margin:0 auto;display:grid;place-items:center;min-height:520px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 20px 50px #1c1b190d}
     .canvas img{max-width:100%;max-height:640px;display:none;object-fit:contain}
+    .mediaWrap{position:relative;display:none;line-height:0}
+    .mediaWrap img{display:block;max-width:100%;max-height:640px;object-fit:contain}
+    .mediaWrap#beforeWrap.pickable img{cursor:crosshair}
     .empty{text-align:center;color:var(--muted);max-width:340px;line-height:1.6}
     .empty b{display:block;color:var(--ink);font-size:19px;margin-bottom:6px;font-family:"Fraunces",Georgia,serif;font-weight:600}
     .loading{display:none;text-align:center;color:#555}
@@ -128,7 +132,7 @@
   <p class="note" id="genNote">La génération peut prendre jusqu'à cinq minutes.</p>
   <p class="error" id="error"></p>
 </aside>
-<section class="preview"><div class="previewTop"><h2>Aperçu dans votre pièce</h2><span class="status" id="status">Prêt</span></div><div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div><div class="canvas"><img id="before" alt="Photo source"><img id="after" alt="Rendu de la cuisine généré"><div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div><div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div></div></section>
+<section class="preview"><div class="previewTop"><h2>Aperçu dans votre pièce</h2><span class="status" id="status">Prêt</span></div><div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div><p class="hint hidden" id="wallPickHintBig">Implantation linéaire : cliquez sur le mur de la photo où vous voulez la cuisine.</p><div class="canvas"><div class="mediaWrap" id="beforeWrap"><img id="before" alt="Photo source"><div class="wallMarker hidden" id="wallMarkerBig"></div></div><img id="after" alt="Rendu de la cuisine généré"><div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div><div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div></div></section>
 </main>
 <script>
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -230,21 +234,32 @@ function updateWallPickUI(){
   const isLinear=$("#layout").value==="linéaire";
   const active=isLinear&&photoData;
   $("#source").classList.toggle("pickable",active);
+  $("#beforeWrap").classList.toggle("pickable",active);
   $("#wallPickHint").classList.toggle("hidden",!active);
-  if(!isLinear){$("#wallMarker").classList.add("hidden")}
+  $("#wallPickHintBig").classList.toggle("hidden",!active);
+  if(!isLinear){$("#wallMarker").classList.add("hidden");$("#wallMarkerBig").classList.add("hidden")}
   $("#wallPickStatus").textContent=selected.wallSide?`Mur sélectionné : ${wallSideLabels[selected.wallSide]}`:"Aucun mur sélectionné pour l'instant (mur par défaut utilisé).";
 }
-$("#source").addEventListener("click",e=>{
+function placeWallMarkers(xRatio,yRatio){
+  [["#source","#wallMarker"],["#before","#wallMarkerBig"]].forEach(([imgSel,markerSel])=>{
+    const img=$(imgSel),marker=$(markerSel);
+    if(!img||img.clientWidth===0)return;
+    marker.style.left=(xRatio*img.clientWidth)+"px";
+    marker.style.top=(yRatio*img.clientHeight)+"px";
+    marker.classList.remove("hidden");
+  });
+}
+function pickWall(e){
   if($("#layout").value!=="linéaire"||!photoData)return;
   const rect=e.currentTarget.getBoundingClientRect();
-  const ratio=(e.clientX-rect.left)/rect.width;
-  selected.wallSide=ratio<0.4?"left":ratio>0.6?"right":"center";
-  const marker=$("#wallMarker");
-  marker.style.left=(e.clientX-rect.left)+"px";
-  marker.style.top=(e.clientY-rect.top)+"px";
-  marker.classList.remove("hidden");
+  const xRatio=(e.clientX-rect.left)/rect.width;
+  const yRatio=(e.clientY-rect.top)/rect.height;
+  selected.wallSide=xRatio<0.4?"left":xRatio>0.6?"right":"center";
+  placeWallMarkers(xRatio,yRatio);
   updateWallPickUI();
-});
+}
+$("#source").addEventListener("click",pickWall);
+$("#before").addEventListener("click",pickWall);
 function modules(n){let r=Number(n)||0,a=[];for(const m of [90,80,60,50,40,30,20])while(r>=m){a.push(m);r-=m}return{a,r}}
 function updateEstimate(){
   const l=$("#layout").value,lines=[];
@@ -265,7 +280,7 @@ layouts();
 
 function show(which){
   $$(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===which));
-  $("#before").style.display=which==="before"&&photoData?"block":"none";
+  $("#beforeWrap").style.display=which==="before"&&photoData?"inline-block":"none";
   $("#after").style.display=which==="after"&&$("#after").src?"block":"none";
   $("#empty").style.display=(which==="before"&&!photoData)||(which==="after"&&!$("#after").src)?"block":"none";
 }
@@ -277,6 +292,7 @@ $("#photo").onchange=async e=>{
   photoData=dataUrl;
   selected.wallSide=null;
   $("#wallMarker").classList.add("hidden");
+  $("#wallMarkerBig").classList.add("hidden");
   $("#source").src=photoData;$("#source").style.display="block";
   $("#before").src=photoData;show("before");
   $("#sourceWarning").style.display=(width<1000||height<1000)?"block":"none";

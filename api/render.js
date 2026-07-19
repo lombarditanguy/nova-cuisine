@@ -107,7 +107,7 @@ function buildPrompt(config) {
 
   const layoutValue = config.layout || "linéaire";
   const layoutConstraint = /linéaire|linear/i.test(layoutValue)
-    ? `This is a strictly single-wall (linear) kitchen: place every cabinet, the worktop and every appliance along ONE wall only${wallSideText ? ` — specifically along ${wallSideText}` : ""}. Every other wall visible in the photo, including any corner and any adjacent wall, must remain exactly as in the reference photo, with absolutely no cabinet, worktop or appliance placed on it — do not wrap the kitchen around a corner.`
+    ? `This is a strictly single-wall (linear) kitchen, like a single straight sideboard: one flat, straight run of cabinets with NO bend, NO corner and NO angle anywhere in it, placed along ONE wall only${wallSideText ? ` — specifically along ${wallSideText}` : ""}. IMPORTANT: even if the existing kitchen counter in the reference photo currently wraps around a corner in an L shape, you must NOT reproduce that L-shaped footprint — the new linear kitchen stops at the corner. Every other wall visible in the photo, including the corner and any adjacent wall, must end up completely bare (only wall tiles or paint visible, no counter, no cabinet, no worktop, no appliance at all on that other wall).`
     : /en l\b/i.test(layoutValue)
     ? "This is an L-shaped kitchen across exactly two adjoining walls meeting at a right angle. Do not add cabinetry to any third wall."
     : /en u\b/i.test(layoutValue)
