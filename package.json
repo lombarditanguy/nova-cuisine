@@ -1,0 +1,8 @@
+{
+  "name": "nova-cuisine-app-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Prototype privé de configurateur de cuisine avec rendu photoréaliste.",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "dotenv": "^16.4.5" }
+}
