@@ -54,13 +54,13 @@ export default async function handler(req, res) {
       `Integrated appliances to include: ${appliances}.`,  
       "Use standard 19 mm melamine cabinet carcasses.",  
       "Use filler panels where cabinets meet walls and finished end panels on exposed sides.",  
-      "Respect real construction scale, the dimensions supplied, realistic joins, shadows, reflections and natural perspective.",  
+      "Respect real construction scale, realistic joins, shadows, reflections and natural perspective.",  
       "Professional interior photography.",  
       "No text, no logo, no labels, no interface."  
     ].join(" ");
 
     const upstream = await fetch(  
-      "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions",  
+      "https://api.replicate.com/v1/predictions",  
       {  
         method: "POST",  
         headers: {  
@@ -69,13 +69,11 @@ export default async function handler(req, res) {
           Prefer: "wait=5"  
         },  
         body: JSON.stringify({  
+          version: "black-forest-labs/flux-kontext-pro",  
           input: {  
             prompt,  
             input_image: image,  
-            aspect_ratio: "match_input_image",  
-            output_format: "jpg",  
-            safety_tolerance: 2,  
-            prompt_upsampling: false  
+            output_format: "jpg"  
           }  
         })  
       }  
