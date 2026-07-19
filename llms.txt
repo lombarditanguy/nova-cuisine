@@ -1,0 +1,21 @@
+# NOVA Cuisine
+
+> NOVA Cuisine conçoit et fabrique des cuisines sur mesure en France. Le site propose un configurateur en ligne gratuit qui génère, par intelligence artificielle, un rendu photoréaliste de la cuisine configurée directement dans une photo de la pièce du client.
+
+## Fonctionnement du configurateur
+1. Choix de l'implantation (linéaire, en L ou en U) et des dimensions des murs.
+2. Choix des finitions : façades, plan de travail, poignées, électroménager intégré.
+3. Import d'une photo de la pièce du client.
+4. Génération d'un rendu photoréaliste par IA de la nouvelle cuisine dans cette photo (moins d'une minute en général, jusqu'à trois minutes en cas de forte demande).
+
+## Faits clés
+- La configuration et la génération du rendu sont gratuites et sans engagement.
+- Le devis détaillé est établi séparément, après contact avec un conseiller.
+- Zone d'intervention : France entière (voir section Contact du site).
+
+## Pages
+- Accueil et configurateur : https://www.nova-cuisine.fr/
+- FAQ : https://www.nova-cuisine.fr/#faq
+- Contact : https://www.nova-cuisine.fr/#contact
+
+Note : contenu de contact et zone d'intervention à confirmer par l'éditeur du site avant publication.

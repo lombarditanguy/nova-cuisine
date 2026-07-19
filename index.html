@@ -1,47 +1,460 @@
+<!--
+  TODO avant mise en production — remplacer les contenus placeholders suivants :
+  1. Domaine réel : toutes les URLs "https://www.nova-cuisine.fr" (canonical, Open Graph, JSON-LD, sitemap.xml).
+  2. Coordonnées de contact (section #contact et footer) : email, téléphone, adresse, SIRET si applicable.
+  3. Zone d'intervention réelle (section #contact et JSON-LD "areaServed").
+  4. Avis clients (section #avis) : témoignages fictifs à remplacer par de vrais retours clients.
+  5. Galerie avant/après (section #galerie) : illustrations schématiques à remplacer par de vraies photos de projets.
+  6. Liens réseaux sociaux (footer et JSON-LD "sameAs").
+-->
 <!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Configurez votre cuisine sur mesure et visualisez un rendu réaliste dans votre pièce.">
-  <title>NOVA Cuisine — Configurateur</title>
+  <title>NOVA Cuisine — Configurateur de cuisine sur mesure avec rendu IA</title>
+  <meta name="description" content="Configurez votre cuisine sur mesure (implantation, façades, plan de travail, poignées) et visualisez un rendu photoréaliste généré par IA directement dans une photo de votre pièce, avant de commander.">
+  <link rel="canonical" href="https://www.nova-cuisine.fr/">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#285cff">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2315171a'/%3E%3Ctext x='32' y='43' font-family='Arial,sans-serif' font-size='30' font-weight='800' fill='%23fff' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NOVA Cuisine">
+  <meta property="og:title" content="NOVA Cuisine — Configurateur de cuisine sur mesure avec rendu IA">
+  <meta property="og:description" content="Importez une photo de votre pièce, configurez votre cuisine sur mesure et visualisez le résultat en rendu photoréaliste généré par IA avant de commander.">
+  <meta property="og:url" content="https://www.nova-cuisine.fr/">
+  <meta property="og:locale" content="fr_FR">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NOVA Cuisine — Configurateur de cuisine sur mesure avec rendu IA">
+  <meta name="twitter:description" content="Configurez votre cuisine et visualisez-la par IA dans votre propre pièce avant de commander.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.nova-cuisine.fr/#organization",
+        "name": "NOVA Cuisine",
+        "url": "https://www.nova-cuisine.fr/",
+        "description": "Fabricant et concepteur de cuisines sur mesure, avec configurateur en ligne et rendu de visualisation généré par intelligence artificielle.",
+        "areaServed": "France",
+        "sameAs": []
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://www.nova-cuisine.fr/#website",
+        "url": "https://www.nova-cuisine.fr/",
+        "name": "NOVA Cuisine",
+        "publisher": { "@id": "https://www.nova-cuisine.fr/#organization" },
+        "inLanguage": "fr-FR"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Configurateur NOVA Cuisine",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Web",
+        "description": "Outil en ligne permettant de configurer une cuisine sur mesure (implantation, façades, plan de travail, poignées, électroménager) et de générer un rendu photoréaliste par IA à partir d'une photo de la pièce du client.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "provider": { "@id": "https://www.nova-cuisine.fr/#organization" }
+      },
+      {
+        "@type": "Service",
+        "name": "Conception et fabrication de cuisine sur mesure",
+        "serviceType": "Aménagement de cuisine sur mesure",
+        "provider": { "@id": "https://www.nova-cuisine.fr/#organization" },
+        "areaServed": "France",
+        "description": "Étude, configuration et fabrication de cuisines sur mesure (implantation linéaire, en L ou en U), avec visualisation du rendu par intelligence artificielle avant commande."
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Comment fonctionne le configurateur NOVA Cuisine ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Vous choisissez l'implantation de votre cuisine (linéaire, en L ou en U), les dimensions de vos murs, les finitions (façades, plan de travail, poignées) et l'électroménager intégré. Vous importez ensuite une photo de votre pièce : le configurateur génère un rendu photoréaliste de votre future cuisine directement dans cette photo, grâce à un modèle d'intelligence artificielle." }
+          },
+          {
+            "@type": "Question",
+            "name": "Le rendu généré par IA est-il fidèle au résultat final ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Le rendu conserve la perspective, l'éclairage et les proportions réelles de votre pièce à partir de la photo importée, et applique votre configuration (implantation, façades, plan de travail, poignées). C'est un outil d'aide à la décision qui donne une image fidèle de l'ambiance et de l'agencement ; les finitions exactes sont confirmées lors de l'étude technique avec un conseiller." }
+          },
+          {
+            "@type": "Question",
+            "name": "Quelles implantations de cuisine sont disponibles ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Trois implantations sont proposées dans le configurateur : linéaire (un seul mur), en L (deux murs) et en U (trois murs), chacune avec des dimensions personnalisables." }
+          },
+          {
+            "@type": "Question",
+            "name": "Combien de temps prend la génération d'un rendu ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "La génération du rendu par IA prend généralement moins d'une minute, et jusqu'à trois minutes en cas de forte demande." }
+          },
+          {
+            "@type": "Question",
+            "name": "Le configurateur et la visualisation IA sont-ils gratuits ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Oui, la configuration de votre cuisine et la génération du rendu visuel sont gratuites et sans engagement. Un devis détaillé est établi séparément, après échange avec un conseiller." }
+          },
+          {
+            "@type": "Question",
+            "name": "Comment obtenir un devis après avoir configuré ma cuisine ?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Une fois votre configuration et votre rendu générés, vous pouvez nous contacter via le formulaire de contact du site pour recevoir un devis détaillé et planifier une étude technique." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <style>
-    :root{--ink:#15171a;--muted:#6d737b;--line:#e6e8ea;--blue:#285cff;--panel:#f7f8f9}
-    *{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#fff}
-    header{height:80px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5vw}.brand{font-weight:800;letter-spacing:.22em;font-size:20px}.brand span{font-weight:400;color:#777}.tag{letter-spacing:.18em;text-transform:uppercase;font-size:11px;color:#626a73}
-    main{display:grid;grid-template-columns:minmax(330px,430px) 1fr;min-height:calc(100vh - 80px)}aside{padding:34px;border-right:1px solid var(--line);overflow:auto}
-    h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;margin:26px 0 10px;color:#555}
-    label{display:block;font-size:11px;color:#646a70;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:13px 0 7px}input,select{width:100%;height:46px;border:1px solid var(--line);border-radius:8px;padding:0 13px;font:inherit;background:#fff}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hidden{display:none}.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.choice{border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px 5px;font-size:12px;cursor:pointer}.choice.active{background:var(--ink);color:#fff;border-color:var(--ink)}
-    .switch{display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:13px;border-radius:8px;font-size:13px}.switch input{width:40px;height:22px}.upload{border:1px dashed #cdd2d6;border-radius:10px;padding:14px;background:#fff}.upload small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
-    #source{width:100%;margin-top:12px;border-radius:9px;display:none;max-height:190px;object-fit:cover}.estimate{background:var(--panel);border-radius:10px;padding:14px;line-height:1.55;font-size:13px;color:#4d5359}.estimate strong{color:var(--ink)}
-    button.generate{width:100%;border:0;border-radius:9px;padding:15px;background:var(--blue);color:#fff;font-weight:750;font-size:14px;cursor:pointer;margin-top:18px}.generate:disabled{opacity:.55;cursor:wait}.note,.error{font-size:12px;text-align:center;color:var(--muted);margin:11px 0}.error{color:#b42424;text-align:left;display:none}
-    section.preview{padding:34px;background:#fbfbfc;display:flex;flex-direction:column;min-width:0}.previewTop{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:17px}.status{font-size:12px;color:#16855a;background:#e7f8f0;padding:6px 10px;border-radius:20px}.tabs{display:flex;gap:25px;margin:24px auto 0;width:min(880px,100%)}.tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:0 0 9px;cursor:pointer;color:#737980}.tab.active{color:var(--ink);border-color:var(--ink)}
-    .canvas{flex:1;width:min(880px,100%);margin:0 auto;display:grid;place-items:center;min-height:500px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 18px 48px #1820440d}.canvas img{max-width:100%;max-height:620px;display:none;object-fit:contain}.empty{text-align:center;color:var(--muted);max-width:330px;line-height:1.6}.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}.loading{display:none;text-align:center;color:#555}.spinner{width:30px;height:30px;border:3px solid #d9e2ff;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
-    @media(max-width:850px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}section.preview{min-height:620px}header{padding:0 20px}.tag{display:none}}
+    :root{--ink:#15171a;--muted:#6d737b;--line:#e6e8ea;--blue:#285cff;--blue-dark:#1a44cc;--panel:#f7f8f9;--bg-soft:#fbfbfc}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.5}
+    h1,h2,h3{line-height:1.2}
+    section[id]{scroll-margin-top:84px}
+    a{color:inherit}
+    .container{width:min(1100px,100%);margin:0 auto;padding:0 5vw}
+
+    /* header / nav */
+    .site-header{position:sticky;top:0;z-index:20;background:#fff;height:80px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5vw}
+    .brand{font-weight:800;letter-spacing:.22em;font-size:20px}.brand span{font-weight:400;color:#777}
+    .site-nav{display:flex;align-items:center;gap:28px}
+    .site-nav a{font-size:13px;font-weight:600;text-decoration:none;color:#3c4148}
+    .site-nav a:hover{color:var(--blue)}
+    .cta-btn{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:11px 18px;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer}
+    .cta-btn:hover{background:var(--blue-dark)}
+    .nav-links{display:flex;gap:22px}
+    @media(max-width:900px){.nav-links{display:none}}
+
+    /* hero */
+    .hero{padding:70px 5vw 60px;background:linear-gradient(180deg,#f7f9ff,#fff)}
+    .hero-inner{width:min(760px,100%);margin:0 auto;text-align:center}
+    .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700;color:var(--blue);margin:0 0 14px}
+    .hero h1{font-size:clamp(28px,4.4vw,46px);margin:0 0 18px;font-weight:800}
+    .hero p.lead{font-size:17px;color:var(--muted);margin:0 auto 30px;max-width:600px}
+    .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+    .cta-secondary{border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px 18px;font-weight:700;font-size:13px;text-decoration:none}
+    .trust-row{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin-top:44px;color:var(--muted);font-size:12px;letter-spacing:.03em}
+
+    /* generic section titles */
+    .section-head{text-align:center;max-width:640px;margin:0 auto 40px}
+    .section-head h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 12px}
+    .section-head p.title{font-size:28px;font-weight:800;margin:0 0 12px;color:var(--ink);letter-spacing:normal;text-transform:none}
+    .section-head p.sub{color:var(--muted);font-size:15px;margin:0}
+    section.block{padding:74px 5vw}
+    section.block.alt{background:var(--panel)}
+
+    /* steps */
+    .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;width:min(1000px,100%);margin:0 auto}
+    .step-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
+    .step-num{width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-bottom:16px}
+    .step-card h3{font-size:16px;margin:0 0 8px}
+    .step-card p{font-size:13.5px;color:var(--muted);margin:0}
+    @media(max-width:850px){.steps-grid{grid-template-columns:1fr}}
+
+    /* advantages */
+    .adv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;width:min(1100px,100%);margin:0 auto}
+    .adv-card{padding:22px 18px;border-radius:12px}
+    .adv-card svg{width:26px;height:26px;stroke:var(--blue);margin-bottom:14px}
+    .adv-card h3{font-size:14.5px;margin:0 0 6px}
+    .adv-card p{font-size:13px;color:var(--muted);margin:0}
+    @media(max-width:900px){.adv-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:520px){.adv-grid{grid-template-columns:1fr}}
+
+    /* gallery */
+    .gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;width:min(1100px,100%);margin:0 auto}
+    .gallery-pair{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+    .gallery-visual{display:grid;grid-template-columns:1fr 1fr;height:160px}
+    .gallery-before,.gallery-after{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff}
+    .gallery-before{background:linear-gradient(135deg,#9aa1a8,#6d737b)}
+    .gallery-after{background:linear-gradient(135deg,var(--blue),#5f7dff)}
+    .gallery-cap{padding:14px 16px;font-size:12.5px;color:var(--muted)}
+    .gallery-note{text-align:center;color:var(--muted);font-size:12px;margin:22px auto 0;max-width:520px}
+    @media(max-width:850px){.gallery-grid{grid-template-columns:1fr}}
+
+    /* configurator wrapper */
+    .configurator-intro{text-align:center;max-width:640px;margin:0 auto 36px}
+    .configurator-intro h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 12px}
+    .configurator-intro p.title{font-size:28px;font-weight:800;margin:0 0 12px}
+    .configurator-intro p.sub{color:var(--muted);font-size:15px;margin:0}
+    .tool{display:grid;grid-template-columns:minmax(330px,430px) 1fr;border:1px solid var(--line);border-radius:16px;overflow:hidden;width:min(1180px,100%);margin:0 auto;min-height:640px}
+    .tool aside{padding:34px;border-right:1px solid var(--line);overflow:auto}
+    .tool h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+    .tool h3{font-size:12px;text-transform:uppercase;letter-spacing:.09em;margin:26px 0 10px;color:#555}
+    .tool label{display:block;font-size:11px;color:#646a70;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:13px 0 7px}
+    .tool input,.tool select{width:100%;height:46px;border:1px solid var(--line);border-radius:8px;padding:0 13px;font:inherit;background:#fff}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hidden{display:none}
+    .choices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.choice{border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px 5px;font-size:12px;cursor:pointer}.choice.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .switch{display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:13px;border-radius:8px;font-size:13px}.switch input{width:40px;height:22px}
+    .upload{border:1px dashed #cdd2d6;border-radius:10px;padding:14px;background:#fff}.upload small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+    #source{width:100%;margin-top:12px;border-radius:9px;display:none;max-height:190px;object-fit:cover}
+    .estimate{background:var(--panel);border-radius:10px;padding:14px;line-height:1.55;font-size:13px;color:#4d5359}.estimate strong{color:var(--ink)}
+    button.generate{width:100%;border:0;border-radius:9px;padding:15px;background:var(--blue);color:#fff;font-weight:750;font-size:14px;cursor:pointer;margin-top:18px}.generate:disabled{opacity:.55;cursor:wait}
+    .note,.error{font-size:12px;text-align:center;color:var(--muted);margin:11px 0}.error{color:#b42424;text-align:left;display:none}
+    section.preview{padding:34px;background:var(--bg-soft);display:flex;flex-direction:column;min-width:0}
+    .previewTop{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:17px}
+    .status{font-size:12px;color:#16855a;background:#e7f8f0;padding:6px 10px;border-radius:20px}
+    .tabs{display:flex;gap:25px;margin:24px auto 0;width:min(880px,100%)}.tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:0 0 9px;cursor:pointer;color:#737980}.tab.active{color:var(--ink);border-color:var(--ink)}
+    .canvas{flex:1;width:min(880px,100%);margin:0 auto;display:grid;place-items:center;min-height:420px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 18px 48px #1820440d}
+    .canvas img{max-width:100%;max-height:560px;display:none;object-fit:contain}
+    .empty{text-align:center;color:var(--muted);max-width:330px;line-height:1.6}.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+    .loading{display:none;text-align:center;color:#555}
+    .spinner{width:30px;height:30px;border:3px solid #d9e2ff;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:850px){.tool{grid-template-columns:1fr}.tool aside{border-right:0;border-bottom:1px solid var(--line)}}
+
+    /* testimonials */
+    .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;width:min(1050px,100%);margin:0 auto}
+    .testi-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px}
+    .testi-stars{color:#e2a03a;font-size:14px;margin-bottom:12px;letter-spacing:2px}
+    .testi-card p.quote{font-size:14px;color:#3c4148;margin:0 0 16px}
+    .testi-author{font-size:12.5px;font-weight:700;color:var(--muted)}
+    @media(max-width:850px){.testi-grid{grid-template-columns:1fr}}
+
+    /* faq */
+    .faq-list{width:min(760px,100%);margin:0 auto;display:flex;flex-direction:column;gap:10px}
+    .faq-item{border:1px solid var(--line);border-radius:12px;padding:6px 20px;background:#fff}
+    .faq-item summary{cursor:pointer;font-weight:700;font-size:14.5px;padding:16px 0;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .faq-item summary::-webkit-details-marker{display:none}
+    .faq-item summary::after{content:"+";font-size:20px;font-weight:400;color:var(--muted)}
+    .faq-item[open] summary::after{content:"–"}
+    .faq-item p{margin:0 0 18px;color:var(--muted);font-size:13.5px}
+
+    /* contact */
+    .contact-band{background:var(--ink);color:#fff;padding:70px 5vw;text-align:center}
+    .contact-band h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9fb2ff;margin:0 0 12px}
+    .contact-band p.title{font-size:26px;font-weight:800;margin:0 0 14px}
+    .contact-band p.sub{color:#c7cad0;font-size:14.5px;max-width:520px;margin:0 auto 28px}
+    .contact-grid{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:34px;font-size:13.5px;color:#c7cad0}
+    .contact-grid strong{display:block;color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+
+    footer{padding:34px 5vw;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+    footer .foot-links{display:flex;gap:18px;flex-wrap:wrap}
+    footer a{text-decoration:none;color:var(--muted)}footer a:hover{color:var(--ink)}
   </style>
 </head>
 <body>
-<header><div class="brand">NOVA <span>CUISINE</span></div><div class="tag">Configurateur de cuisine sur mesure</div></header>
+<header class="site-header">
+  <div class="brand">NOVA <span>CUISINE</span></div>
+  <nav class="site-nav">
+    <div class="nav-links">
+      <a href="#comment-ca-marche">Comment ça marche</a>
+      <a href="#avantages">Avantages</a>
+      <a href="#galerie">Galerie</a>
+      <a href="#avis">Avis</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <a class="cta-btn" href="#configurateur">Configurer ma cuisine</a>
+  </nav>
+</header>
+
 <main>
-<aside>
-  <h2>Configuration</h2>
-  <label for="layout">Implantation</label>
-  <select id="layout"><option value="linéaire">Linéaire</option><option value="en L">En L</option><option value="en U">En U</option></select>
-  <div class="row"><div><label for="wall1">Mur principal (cm)</label><input id="wall1" type="number" value="360" min="120"></div><div id="wall2box" class="hidden"><label for="wall2">Deuxième mur (cm)</label><input id="wall2" type="number" value="240" min="120"></div></div>
-  <div id="wall3box" class="hidden"><label for="wall3">Troisième mur (cm)</label><input id="wall3" type="number" value="200" min="120"></div>
-  <h3>Éléments</h3><div class="switch"><b>Meubles hauts</b><input id="upper" type="checkbox" checked></div>
-  <label>Électroménager intégré</label><div class="choices" id="applianceChoices"><button class="choice active" data-value="four">Four</button><button class="choice active" data-value="plaque">Plaque</button><button class="choice active" data-value="réfrigérateur">Frigo</button></div>
-  <h3>Finitions</h3>
-  <div class="row"><div><label for="facades">Façades</label><select id="facades"><option>Blanc mat</option><option>Chêne naturel</option><option>Noir mat</option><option>Vert sauge</option></select></div><div><label for="worktop">Plan de travail</label><select id="worktop"><option>Quartz blanc</option><option>Effet marbre</option><option>Chêne clair</option><option>Granit noir</option></select></div></div>
-  <label>Type de poignées</label><div class="choices" id="handleChoices"><button class="choice active" data-value="Bâtons maréchals">Bâtons</button><button class="choice" data-value="Boutons">Boutons</button><button class="choice" data-value="Push-latch">Push-latch</button></div>
-  <label>Couleur des poignées</label><div class="choices" id="colorChoices"><button class="choice active" data-value="Noir">Noir</button><button class="choice" data-value="Inox">Inox</button><button class="choice" data-value="Doré">Doré</button></div>
-  <h3>Votre espace</h3><label class="upload" for="photo">Importer la photo de la pièce <small>JPG, PNG ou WEBP · une vue large est recommandée</small><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><img id="source" alt="Photo de la pièce">
-  <h3>Composition estimée</h3><div class="estimate" id="estimate"></div>
-  <button class="generate" id="generate">Générer le rendu dans ma pièce</button><p class="note">La génération peut prendre jusqu’à trois minutes.</p><p class="error" id="error"></p>
-</aside>
-<section class="preview"><div class="previewTop"><h2>Aperçu dans votre pièce</h2><span class="status" id="status">Prêt</span></div><div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div><div class="canvas"><img id="before" alt="Photo source"><img id="after" alt="Rendu de la cuisine généré"><div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div><div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small>La pièce est analysée et la nouvelle implantation est générée…</small></div></div></section>
+
+  <section class="hero" id="accueil">
+    <div class="hero-inner">
+      <p class="eyebrow">Cuisines sur mesure</p>
+      <h1>Visualisez votre future cuisine par IA, dans votre propre pièce, avant de commander</h1>
+      <p class="lead">Configurez l'implantation, les façades, le plan de travail et les poignées de votre cuisine sur mesure, puis importez une photo de votre pièce pour obtenir un rendu photoréaliste généré par intelligence artificielle.</p>
+      <div class="hero-actions">
+        <a class="cta-btn" href="#configurateur">Lancer le configurateur</a>
+        <a class="cta-secondary" href="#comment-ca-marche">Voir comment ça marche</a>
+      </div>
+      <div class="trust-row">
+        <span>Configuration gratuite</span>
+        <span>Rendu généré par IA en quelques minutes</span>
+        <span>Devis personnalisé sur demande</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="comment-ca-marche">
+    <div class="section-head">
+      <h2>Comment ça marche</h2>
+      <p class="title">De la configuration au rendu, en trois étapes</p>
+      <p class="sub">Aucune compétence en décoration ou en 3D n'est nécessaire : le configurateur s'occupe de la mise en situation.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3>Configurez votre cuisine</h3>
+        <p>Choisissez l'implantation (linéaire, en L ou en U), les dimensions de vos murs, les façades, le plan de travail, les poignées et l'électroménager intégré.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3>Importez une photo de votre pièce</h3>
+        <p>Prenez ou importez une photo large de votre cuisine actuelle. Elle sert de base pour conserver l'angle, la lumière et les proportions réelles de la pièce.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3>Obtenez votre rendu IA</h3>
+        <p>Le moteur de rendu génère votre nouvelle cuisine directement dans votre photo, pour visualiser le résultat avant de demander un devis.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block alt" id="avantages">
+    <div class="section-head">
+      <h2>Pourquoi NOVA Cuisine</h2>
+      <p class="title">Une cuisine sur mesure, pensée pour votre pièce</p>
+    </div>
+    <div class="adv-grid">
+      <div class="adv-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.5"/><path d="M8 5l1.2-2h5.6L16 5"/></svg>
+        <h3>Rendu réaliste par IA</h3>
+        <p>Visualisez votre cuisine dans votre propre pièce, pas dans un décor générique.</p>
+      </div>
+      <div class="adv-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-7h6v7"/></svg>
+        <h3>100 % sur mesure</h3>
+        <p>Implantation, dimensions, façades et finitions adaptées à votre espace exact.</p>
+      </div>
+      <div class="adv-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="5"/></svg>
+        <h3>Composition détaillée</h3>
+        <p>Le configurateur calcule le débit des caissons mélaminé 19 mm selon vos dimensions.</p>
+      </div>
+      <div class="adv-card">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <h3>Gratuit et sans engagement</h3>
+        <p>Configurez et visualisez librement, le devis n'intervient qu'après votre validation.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="galerie">
+    <div class="section-head">
+      <h2>Galerie</h2>
+      <p class="title">Exemples de rendus avant / après</p>
+      <p class="sub">Aperçu du principe : une pièce existante transformée en cuisine sur mesure par le rendu IA.</p>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-pair">
+        <div class="gallery-visual"><div class="gallery-before">Avant</div><div class="gallery-after">Après</div></div>
+        <div class="gallery-cap">Implantation en L, façades chêne naturel, poignées inox.</div>
+      </div>
+      <div class="gallery-pair">
+        <div class="gallery-visual"><div class="gallery-before">Avant</div><div class="gallery-after">Après</div></div>
+        <div class="gallery-cap">Implantation linéaire, façades blanc mat, plan de travail quartz.</div>
+      </div>
+      <div class="gallery-pair">
+        <div class="gallery-visual"><div class="gallery-before">Avant</div><div class="gallery-after">Après</div></div>
+        <div class="gallery-cap">Implantation en U, façades vert sauge, poignées dorées.</div>
+      </div>
+    </div>
+    <p class="gallery-note">Illustrations schématiques du principe avant / après. Testez le configurateur ci-dessous pour générer un rendu à partir de votre propre photo.</p>
+  </section>
+
+  <section class="block alt" id="configurateur">
+    <div class="configurator-intro">
+      <h2>Configurateur</h2>
+      <p class="title">Configurez votre cuisine et générez votre rendu</p>
+      <p class="sub">Renseignez votre implantation et vos finitions, importez une photo de votre pièce, puis lancez la génération du rendu.</p>
+    </div>
+    <div class="tool">
+      <aside>
+        <h2>Configuration</h2>
+        <label for="layout">Implantation</label>
+        <select id="layout"><option value="linéaire">Linéaire</option><option value="en L">En L</option><option value="en U">En U</option></select>
+        <div class="row"><div><label for="wall1">Mur principal (cm)</label><input id="wall1" type="number" value="360" min="120"></div><div id="wall2box" class="hidden"><label for="wall2">Deuxième mur (cm)</label><input id="wall2" type="number" value="240" min="120"></div></div>
+        <div id="wall3box" class="hidden"><label for="wall3">Troisième mur (cm)</label><input id="wall3" type="number" value="200" min="120"></div>
+        <h3>Éléments</h3><div class="switch"><b>Meubles hauts</b><input id="upper" type="checkbox" checked></div>
+        <label>Électroménager intégré</label><div class="choices" id="applianceChoices"><button class="choice active" data-value="four">Four</button><button class="choice active" data-value="plaque">Plaque</button><button class="choice active" data-value="réfrigérateur">Frigo</button></div>
+        <h3>Finitions</h3>
+        <div class="row"><div><label for="facades">Façades</label><select id="facades"><option>Blanc mat</option><option>Chêne naturel</option><option>Noir mat</option><option>Vert sauge</option></select></div><div><label for="worktop">Plan de travail</label><select id="worktop"><option>Quartz blanc</option><option>Effet marbre</option><option>Chêne clair</option><option>Granit noir</option></select></div></div>
+        <label>Type de poignées</label><div class="choices" id="handleChoices"><button class="choice active" data-value="Bâtons maréchals">Bâtons</button><button class="choice" data-value="Boutons">Boutons</button><button class="choice" data-value="Push-latch">Push-latch</button></div>
+        <label>Couleur des poignées</label><div class="choices" id="colorChoices"><button class="choice active" data-value="Noir">Noir</button><button class="choice" data-value="Inox">Inox</button><button class="choice" data-value="Doré">Doré</button></div>
+        <h3>Votre espace</h3><label class="upload" for="photo">Importer la photo de la pièce <small>JPG, PNG ou WEBP · une vue large est recommandée</small><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden></label><img id="source" alt="Photo de la pièce">
+        <h3>Composition estimée</h3><div class="estimate" id="estimate"></div>
+        <button class="generate" id="generate">Générer le rendu dans ma pièce</button><p class="note">La génération peut prendre jusqu'à trois minutes.</p><p class="error" id="error"></p>
+      </aside>
+      <section class="preview"><div class="previewTop"><h2>Aperçu dans votre pièce</h2><span class="status" id="status">Prêt</span></div><div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div><div class="canvas"><img id="before" alt="Photo source"><img id="after" alt="Rendu de la cuisine généré"><div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div><div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small>La pièce est analysée et la nouvelle implantation est générée…</small></div></div></section>
+    </div>
+  </section>
+
+  <section class="block" id="avis">
+    <div class="section-head">
+      <h2>Avis clients</h2>
+      <p class="title">Ce qu'en disent nos clients</p>
+      <p class="sub">Exemples de témoignages — à remplacer par de vrais retours clients avant publication.</p>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="quote">« Voir le rendu dans notre propre cuisine avant de commander nous a vraiment aidés à choisir les finitions. »</p>
+        <div class="testi-author">Client — exemple à remplacer</div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="quote">« Le configurateur est simple à utiliser et le rendu généré donne une idée très claire du résultat final. »</p>
+        <div class="testi-author">Client — exemple à remplacer</div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="quote">« Nous avons pu comparer plusieurs implantations avant de nous décider, sans nous déplacer. »</p>
+        <div class="testi-author">Client — exemple à remplacer</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block alt" id="faq">
+    <div class="section-head">
+      <h2>FAQ</h2>
+      <p class="title">Questions fréquentes</p>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Comment fonctionne le configurateur NOVA Cuisine ?</summary>
+        <p>Vous choisissez l'implantation de votre cuisine (linéaire, en L ou en U), les dimensions de vos murs, les finitions (façades, plan de travail, poignées) et l'électroménager intégré. Vous importez ensuite une photo de votre pièce : le configurateur génère un rendu photoréaliste de votre future cuisine directement dans cette photo, grâce à un modèle d'intelligence artificielle.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Le rendu généré par IA est-il fidèle au résultat final ?</summary>
+        <p>Le rendu conserve la perspective, l'éclairage et les proportions réelles de votre pièce à partir de la photo importée, et applique votre configuration. C'est un outil d'aide à la décision ; les finitions exactes sont confirmées lors de l'étude technique avec un conseiller.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Quelles implantations de cuisine sont disponibles ?</summary>
+        <p>Trois implantations sont proposées : linéaire (un seul mur), en L (deux murs) et en U (trois murs), chacune avec des dimensions personnalisables.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Combien de temps prend la génération d'un rendu ?</summary>
+        <p>La génération du rendu par IA prend généralement moins d'une minute, et jusqu'à trois minutes en cas de forte demande.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Le configurateur et la visualisation IA sont-ils gratuits ?</summary>
+        <p>Oui, la configuration de votre cuisine et la génération du rendu visuel sont gratuites et sans engagement. Un devis détaillé est établi séparément, après échange avec un conseiller.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Comment obtenir un devis après avoir configuré ma cuisine ?</summary>
+        <p>Une fois votre configuration et votre rendu générés, contactez-nous via le formulaire de contact du site pour recevoir un devis détaillé et planifier une étude technique.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="contact-band" id="contact">
+    <h2>Contact</h2>
+    <p class="title">Un projet de cuisine sur mesure ?</p>
+    <p class="sub">Configurez votre cuisine et générez votre rendu, puis contactez-nous pour obtenir un devis personnalisé.</p>
+    <a class="cta-btn" href="#configurateur">Configurer ma cuisine</a>
+    <div class="contact-grid">
+      <div><strong>Email</strong>contact@nova-cuisine.fr</div>
+      <div><strong>Téléphone</strong>01 23 45 67 89</div>
+      <div><strong>Zone d'intervention</strong>France entière</div>
+    </div>
+  </section>
+
 </main>
+
+<footer>
+  <span>© 2026 NOVA Cuisine — Tous droits réservés.</span>
+  <div class="foot-links">
+    <a href="#accueil">Accueil</a>
+    <a href="#configurateur">Configurateur</a>
+    <a href="#faq">FAQ</a>
+    <a href="#contact">Contact</a>
+  </div>
+</footer>
+
 <script>
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 let selected={appliances:new Set(["four","plaque","réfrigérateur"]),handleType:"Bâtons maréchals",handleColor:"Noir"},photoData=null;
@@ -54,7 +467,7 @@ function show(which){$$(".tab").forEach(x=>x.classList.toggle("active",x.dataset
 $("#photo").onchange=async e=>{const f=e.target.files[0];if(!f)return;photoData=await compactImage(f);$("#source").src=photoData;$("#source").style.display="block";$("#before").src=photoData;show("before")};
 async function compactImage(file){const raw=await new Promise((ok,no)=>{const r=new FileReader;r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});const img=new Image;img.src=raw;await img.decode();let scale=Math.min(1,1280/Math.max(img.width,img.height)),quality=.82,out;for(let i=0;i<7;i++){const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);out=c.toDataURL("image/jpeg",quality);if(out.length<800000)break;scale*=.8;quality-=.05}return out}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-$("#generate").onclick=async()=>{if(!photoData){$("#error").textContent="Importez d’abord une photo de la pièce.";$("#error").style.display="block";return}const btn=$("#generate");btn.disabled=true;$("#error").style.display="none";$("#loading").style.display="block";$("#empty").style.display="none";$("#status").textContent="Génération…";try{const config={layout:$("#layout").value,wall1:$("#wall1").value,wall2:$("#wall2").value,wall3:$("#wall3").value,facades:$("#facades").value,worktop:$("#worktop").value,upperCabinets:$("#upper").checked,appliances:[...selected.appliances],handleType:selected.handleType,handleColor:selected.handleColor};let r=await fetch("/api/render",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:photoData,config})});let d=await r.json();if(!r.ok)throw Error(d.error||"Impossible de démarrer le rendu.");let url=d.imageUrl,status=d.status;const predictionId=d.id;for(let i=0;!url&&i<60;i++){await sleep(3000);r=await fetch("/api/prediction?id="+encodeURIComponent(predictionId));d=await r.json();if(!r.ok)throw Error(d.error||"Impossible de suivre le rendu.");status=d.status;if(status==="failed"||status==="canceled")throw Error(d.error||"La génération a échoué.");url=d.imageUrl}if(!url)throw Error("Le rendu est toujours en cours. Attendez une minute puis relancez la génération.");$("#after").src=url;show("after");$("#status").textContent="Rendu prêt"}catch(e){$("#error").textContent=e.message;$("#error").style.display="block";$("#status").textContent="Erreur"}finally{$("#loading").style.display="none";btn.disabled=false}};
+$("#generate").onclick=async()=>{if(!photoData){$("#error").textContent="Importez d'abord une photo de la pièce.";$("#error").style.display="block";return}const btn=$("#generate");btn.disabled=true;$("#error").style.display="none";$("#loading").style.display="block";$("#empty").style.display="none";$("#status").textContent="Génération…";try{const config={layout:$("#layout").value,wall1:$("#wall1").value,wall2:$("#wall2").value,wall3:$("#wall3").value,facades:$("#facades").value,worktop:$("#worktop").value,upperCabinets:$("#upper").checked,appliances:[...selected.appliances],handleType:selected.handleType,handleColor:selected.handleColor};let r=await fetch("/api/render",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:photoData,config})});let d=await r.json();if(!r.ok)throw Error(d.error||"Impossible de démarrer le rendu.");let url=d.imageUrl,status=d.status;const predictionId=d.id;for(let i=0;!url&&i<60;i++){await sleep(3000);r=await fetch("/api/prediction?id="+encodeURIComponent(predictionId));d=await r.json();if(!r.ok)throw Error(d.error||"Impossible de suivre le rendu.");status=d.status;if(status==="failed"||status==="canceled")throw Error(d.error||"La génération a échoué.");url=d.imageUrl}if(!url)throw Error("Le rendu est toujours en cours. Attendez une minute puis relancez la génération.");$("#after").src=url;show("after");$("#status").textContent="Rendu prêt"}catch(e){$("#error").textContent=e.message;$("#error").style.display="block";$("#status").textContent="Erreur"}finally{$("#loading").style.display="none";btn.disabled=false}};
 </script>
 </body>
 </html>
