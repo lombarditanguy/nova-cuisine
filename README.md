@@ -5,6 +5,14 @@ l'électroménager, on importe une photo de la pièce, et le site génère un re
 photoréaliste de la future cuisine dans cette pièce (via l'API Replicate, modèle
 `black-forest-labs/flux-kontext-pro`).
 
+En implantation linéaire, le client peut délimiter à la souris la zone exacte de la
+nouvelle cuisine sur la photo (glisser-déposer un rectangle) : dans ce cas, le rendu
+passe par le modèle `black-forest-labs/flux-fill-pro` (inpainting avec masque), qui
+verrouille tout le reste de la photo — plus fiable que le simple prompt texte pour
+éviter qu'un mur adjacent, une fenêtre ou une porte ne soit modifié par erreur. Les
+deux modèles utilisent le même jeton `REPLICATE_API_TOKEN`, aucune configuration
+supplémentaire n'est nécessaire.
+
 ## Fichiers à conserver à la racine
 - `index.html`
 - `package.json`

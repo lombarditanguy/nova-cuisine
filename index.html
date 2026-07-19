@@ -42,12 +42,12 @@
     .upload{border:1px dashed #cfc7b8;border-radius:10px;padding:14px;background:#fff;cursor:pointer;display:block}
     .upload small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
     #source{width:100%;margin-top:12px;border-radius:9px;display:none;max-height:190px;object-fit:cover}
-    #source.pickable{cursor:crosshair}
     .sourceWrap{position:relative}
-    .wallMarker{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 2px var(--accent-dark);transform:translate(-50%,-50%);pointer-events:none}
     .hint{font-size:11.5px;color:#6f6a5f;background:var(--panel);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5}
     .hint span{display:block;font-weight:700;color:var(--ink);margin-top:2px}
     #wallPickHintBig{width:min(900px,100%);margin:10px auto 0;text-align:center}
+    .disclaimer{width:min(900px,100%);margin:8px auto 0;text-align:center;font-size:11px;color:#8a8578;line-height:1.5}
+    .wallRect{position:absolute;border:2px dashed var(--accent);background:rgba(168,112,63,.16);pointer-events:none}
     .warning{font-size:11px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;margin-top:8px;display:none}
     .estimate{background:var(--panel);border-radius:10px;padding:15px;line-height:1.6;font-size:13px;color:#4d4a41}
     .estimate strong{color:var(--ink)}
@@ -119,8 +119,8 @@
 
   <h2 class="section"><span class="n">6</span>Votre espace</h2>
   <label class="upload" for="photo">Importer la photo de la pièce <small>JPG, PNG ou WEBP · une vue large et bien éclairée est recommandée</small><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
-  <div class="sourceWrap" id="sourceWrap"><img id="source" alt="Photo de la pièce"><div class="wallMarker hidden" id="wallMarker"></div></div>
-  <p class="hint hidden" id="wallPickHint">Implantation linéaire : cliquez sur le mur de la photo où vous voulez la cuisine.<span id="wallPickStatus"></span></p>
+  <div class="sourceWrap" id="sourceWrap"><img id="source" alt="Photo de la pièce"></div>
+  <p class="hint hidden" id="wallPickHint">Implantation linéaire : délimitez la zone de la cuisine dans l'aperçu à droite (« Photo source »).</p>
   <p class="warning" id="sourceWarning">Photo de faible résolution : pour un rendu plus précis, utilisez une photo d'au moins 1000 px de large.</p>
 
   <h2 class="section"><span class="n">7</span>Précisions pour l'IA</h2>
@@ -132,7 +132,7 @@
   <p class="note" id="genNote">La génération peut prendre jusqu'à cinq minutes.</p>
   <p class="error" id="error"></p>
 </aside>
-<section class="preview"><div class="previewTop"><h2>Aperçu dans votre pièce</h2><span class="status" id="status">Prêt</span></div><div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div><p class="hint hidden" id="wallPickHintBig">Implantation linéaire : cliquez sur le mur de la photo où vous voulez la cuisine.</p><div class="canvas"><div class="mediaWrap" id="beforeWrap"><img id="before" alt="Photo source"><div class="wallMarker hidden" id="wallMarkerBig"></div></div><img id="after" alt="Rendu de la cuisine généré"><div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div><div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div></div></section>
+<section class="preview"><div class="previewTop"><h2>Aperçu dans votre pièce</h2><span class="status" id="status">Prêt</span></div><div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div><p class="disclaimer">Aperçu généré par IA à visée illustrative — la composition exacte (nombre et dimensions des meubles) est celle du panneau <strong>Composition estimée</strong>, calculée indépendamment de l'image.</p><p class="hint hidden" id="wallPickHintBig">Implantation linéaire : cliquez-glissez sur la photo pour délimiter précisément la zone de la nouvelle cuisine (recommandé).<span id="wallPickStatus"></span></p><div class="canvas"><div class="mediaWrap" id="beforeWrap"><img id="before" alt="Photo source"><div class="wallRect hidden" id="wallRectBig"></div></div><img id="after" alt="Rendu de la cuisine généré"><div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div><div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div></div></section>
 </main>
 <script>
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -166,6 +166,7 @@ let selected={
   wallSide:null
 };
 let photoData=null;
+let photoSentWidth=null,photoSentHeight=null;
 
 function dot(h){return h?`<span class="dot" style="background:${h}"></span>`:""}
 
@@ -229,37 +230,62 @@ function layouts(){
   updateEstimate();
 }
 
-const wallSideLabels={left:"Gauche",center:"Centre / fond",right:"Droite"};
+let selectionRect=null;
+function clamp01(v){return Math.max(0,Math.min(1,v))}
+function positionRectOverlay(){
+  const img=$("#before"),el=$("#wallRectBig");
+  if(!img||!el)return;
+  if(!selectionRect||img.clientWidth===0){el.classList.add("hidden");return}
+  const w=img.clientWidth,h=img.clientHeight;
+  el.style.left=(selectionRect.x0*w)+"px";
+  el.style.top=(selectionRect.y0*h)+"px";
+  el.style.width=((selectionRect.x1-selectionRect.x0)*w)+"px";
+  el.style.height=((selectionRect.y1-selectionRect.y0)*h)+"px";
+  el.classList.remove("hidden");
+  const cx=(selectionRect.x0+selectionRect.x1)/2;
+  selected.wallSide=cx<0.4?"left":cx>0.6?"right":"center";
+}
 function updateWallPickUI(){
   const isLinear=$("#layout").value==="linéaire";
   const active=isLinear&&photoData;
-  $("#source").classList.toggle("pickable",active);
   $("#beforeWrap").classList.toggle("pickable",active);
   $("#wallPickHint").classList.toggle("hidden",!active);
   $("#wallPickHintBig").classList.toggle("hidden",!active);
-  if(!isLinear){$("#wallMarker").classList.add("hidden");$("#wallMarkerBig").classList.add("hidden")}
-  $("#wallPickStatus").textContent=selected.wallSide?`Mur sélectionné : ${wallSideLabels[selected.wallSide]}`:"Aucun mur sélectionné pour l'instant (mur par défaut utilisé).";
+  if(isLinear){positionRectOverlay()}else{$("#wallRectBig").classList.add("hidden")}
+  $("#wallPickStatus").textContent=selectionRect
+    ?"Zone délimitée ✓ (le reste de la photo sera verrouillé et restera inchangé)."
+    :"Aucune zone dessinée pour l'instant (un mur par défaut sera utilisé, sans verrouillage garanti).";
 }
-function placeWallMarkers(xRatio,yRatio){
-  [["#source","#wallMarker"],["#before","#wallMarkerBig"]].forEach(([imgSel,markerSel])=>{
-    const img=$(imgSel),marker=$(markerSel);
-    if(!img||img.clientWidth===0)return;
-    marker.style.left=(xRatio*img.clientWidth)+"px";
-    marker.style.top=(yRatio*img.clientHeight)+"px";
-    marker.classList.remove("hidden");
+function applyRectOverlay(){updateWallPickUI()}
+(function attachDragSelect(){
+  const img=$("#before");
+  let anchor=null;
+  img.style.touchAction="none";
+  img.addEventListener("pointerdown",e=>{
+    if($("#layout").value!=="linéaire"||!photoData)return;
+    e.preventDefault();
+    const rect=img.getBoundingClientRect();
+    anchor={x:clamp01((e.clientX-rect.left)/rect.width),y:clamp01((e.clientY-rect.top)/rect.height)};
+    img.setPointerCapture(e.pointerId);
   });
-}
-function pickWall(e){
-  if($("#layout").value!=="linéaire"||!photoData)return;
-  const rect=e.currentTarget.getBoundingClientRect();
-  const xRatio=(e.clientX-rect.left)/rect.width;
-  const yRatio=(e.clientY-rect.top)/rect.height;
-  selected.wallSide=xRatio<0.4?"left":xRatio>0.6?"right":"center";
-  placeWallMarkers(xRatio,yRatio);
-  updateWallPickUI();
-}
-$("#source").addEventListener("click",pickWall);
-$("#before").addEventListener("click",pickWall);
+  img.addEventListener("pointermove",e=>{
+    if(!anchor)return;
+    const rect=img.getBoundingClientRect();
+    const cur={x:clamp01((e.clientX-rect.left)/rect.width),y:clamp01((e.clientY-rect.top)/rect.height)};
+    selectionRect={
+      x0:Math.min(anchor.x,cur.x),y0:Math.min(anchor.y,cur.y),
+      x1:Math.max(anchor.x,cur.x),y1:Math.max(anchor.y,cur.y)
+    };
+    applyRectOverlay();
+  });
+  ["pointerup","pointercancel"].forEach(ev=>img.addEventListener(ev,()=>{
+    anchor=null;
+    if(selectionRect&&(selectionRect.x1-selectionRect.x0<0.03||selectionRect.y1-selectionRect.y0<0.03)){
+      selectionRect=null;
+    }
+    updateWallPickUI();
+  }));
+})();
 function modules(n){let r=Number(n)||0,a=[];for(const m of [90,80,60,50,40,30,20])while(r>=m){a.push(m);r-=m}return{a,r}}
 function updateEstimate(){
   const l=$("#layout").value,lines=[];
@@ -288,14 +314,14 @@ $$(".tab").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
 $("#photo").onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
-  const {dataUrl,width,height}=await compactImage(f);
-  photoData=dataUrl;
+  const {dataUrl,width,height,sentWidth,sentHeight}=await compactImage(f);
+  photoData=dataUrl;photoSentWidth=sentWidth;photoSentHeight=sentHeight;
   selected.wallSide=null;
-  $("#wallMarker").classList.add("hidden");
-  $("#wallMarkerBig").classList.add("hidden");
+  selectionRect=null;
   $("#source").src=photoData;$("#source").style.display="block";
   $("#before").src=photoData;show("before");
   $("#sourceWarning").style.display=(width<1000||height<1000)?"block":"none";
+  applyRectOverlay();
   updateWallPickUI();
 };
 
@@ -303,16 +329,28 @@ async function compactImage(file){
   const raw=await new Promise((ok,no)=>{const r=new FileReader;r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(file)});
   const img=new Image;img.src=raw;await img.decode();
   const width=img.width,height=img.height;
-  let scale=Math.min(1,1280/Math.max(img.width,img.height)),quality=.82,out;
+  let scale=Math.min(1,1280/Math.max(img.width,img.height)),quality=.82,out,sentWidth,sentHeight;
   for(let i=0;i<7;i++){
     const c=document.createElement("canvas");
-    c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+    sentWidth=c.width=Math.round(img.width*scale);sentHeight=c.height=Math.round(img.height*scale);
     c.getContext("2d").drawImage(img,0,0,c.width,c.height);
     out=c.toDataURL("image/jpeg",quality);
     if(out.length<800000)break;
     scale*=.8;quality-=.05;
   }
-  return {dataUrl:out,width,height};
+  return {dataUrl:out,width,height,sentWidth,sentHeight};
+}
+
+function buildMaskDataUrl(rect,width,height){
+  const c=document.createElement("canvas");
+  c.width=width;c.height=height;
+  const ctx=c.getContext("2d");
+  ctx.fillStyle="#000";ctx.fillRect(0,0,width,height);
+  ctx.fillStyle="#fff";
+  const x=Math.round(rect.x0*width),y=Math.round(rect.y0*height);
+  const w=Math.round((rect.x1-rect.x0)*width),h=Math.round((rect.y1-rect.y0)*height);
+  ctx.fillRect(x,y,w,h);
+  return c.toDataURL("image/png");
 }
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -340,7 +378,11 @@ $("#generate").onclick=async()=>{
       lighting:{spots:$("#lightingSpots").checked,led:$("#lightingLed").checked},
       notes:$("#notes").value.trim().slice(0,500)
     };
-    let r=await fetch("/api/render",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:photoData,config})});
+    let mask=null;
+    if(config.layout==="linéaire"&&selectionRect&&photoSentWidth&&photoSentHeight){
+      mask=buildMaskDataUrl(selectionRect,photoSentWidth,photoSentHeight);
+    }
+    let r=await fetch("/api/render",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:photoData,mask,config})});
     let d=await r.json();
     if(!r.ok)throw Error(d.error||"Impossible de démarrer le rendu.");
     let url=d.imageUrl,status=d.status;

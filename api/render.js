@@ -14,34 +14,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { image, config } = req.body || {};
+    const { image, mask, config } = req.body || {};
     if (!image || !config) {
       return res.status(400).json({ error: "Photo ou configuration manquante." });
     }
 
-    const prompt = buildPrompt(config);
+    const useMask = typeof mask === "string" && mask.startsWith("data:image");
+    const prompt = buildPrompt(config, useMask);
 
-    const upstream = await fetch(
-      "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "Prefer": "wait=5"
-        },
-        body: JSON.stringify({
-          input: {
-            prompt,
-            input_image: image,
-            aspect_ratio: "match_input_image",
-            output_format: "jpg",
-            safety_tolerance: 2,
-            prompt_upsampling: false
-          }
-        })
-      }
-    );
+    const modelUrl = useMask
+      ? "https://api.replicate.com/v1/models/black-forest-labs/flux-fill-pro/predictions"
+      : "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions";
+
+    const input = useMask
+      ? {
+          prompt,
+          image,
+          mask,
+          output_format: "jpg",
+          safety_tolerance: 2
+        }
+      : {
+          prompt,
+          input_image: image,
+          aspect_ratio: "match_input_image",
+          output_format: "jpg",
+          safety_tolerance: 2,
+          prompt_upsampling: false
+        };
+
+    const upstream = await fetch(modelUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Prefer": "wait=5"
+      },
+      body: JSON.stringify({ input })
+    });
 
     const raw = await upstream.text();
     let prediction;
@@ -71,7 +81,7 @@ export default async function handler(req, res) {
   }
 }
 
-function buildPrompt(config) {
+function buildPrompt(config, useMask) {
   const applianceList = Array.isArray(config.appliances) ? config.appliances.filter(Boolean) : [];
 
   const walls = [
@@ -81,6 +91,15 @@ function buildPrompt(config) {
   ].filter(Boolean).join(", ");
 
   const noHandles = /push|sans poignée/i.test(config.handleType || "") || /sans poignée/i.test(config.doorStyle || "");
+  const handleDescriptor = noHandles
+    ? "no visible handles or knobs anywhere: push-to-open fronts, perfectly flush and seamless"
+    : /bouton/i.test(config.handleType || "")
+    ? `small round KNOBS only — one compact individual round knob per door and drawer, absolutely NOT a long bar handle — in ${config.handleColor || "black"} finish`
+    : `long bar/pull HANDLES only — a single straight bar mounted on each door and drawer, absolutely NOT small round knobs — in ${config.handleColor || "black"} finish`;
+
+  const upperLine = config.upperCabinets
+    ? "Mandatory, do not skip: include upper wall cabinets above the worktop, running along the same wall as the base cabinets, matching the same door style and finish, fitted up to near ceiling height. The kitchen is incomplete and WRONG if these upper cabinets are missing from the final image — they must be clearly visible."
+    : "Do not include any upper wall cabinets — leave the entire wall above the worktop bare, showing only the wall finish.";
 
   const island = config.island
     ? `Add a freestanding kitchen island, ${config.island.width || 140} by ${config.island.depth || 90} cm, matching the same cabinet fronts and worktop.${
@@ -137,7 +156,12 @@ function buildPrompt(config) {
     ? `Additional client instructions specific to this room — follow them precisely and let them override any conflicting instruction above: ${notes}.`
     : "";
 
+  const maskLine = useMask
+    ? "This image has a mask: you may only draw inside the white masked region, which marks exactly where the new kitchen goes. Everything outside the white mask is already fixed and protected — do not worry about it, focus entirely on filling the masked region with the new kitchen described below, blending naturally at the mask edges (matching floor line, wall color and lighting) with what is already outside the mask."
+    : "";
+
   const lines = [
+    maskLine,
     "This is a precise photo edit of the exact reference photo provided, not a new scene: same room, same photo, same camera angle and framing, same distance and lens perspective.",
     "Keep 100% identical and pixel-accurate, exactly as in the reference photo, in shape, color, material and position: the floor (same material, color and pattern), every wall (same color and texture), the ceiling, every window (same size, position and frame), and any technical or fixed equipment visible such as a boiler, water heater, radiator, thermostat, electrical panel, meter box, light switch, socket, pipe or vent.",
     "Every door must keep exactly the same type, height, width, position and opening mechanism as in the reference photo — including any full-height glazed door, French door, sliding door, porte-fenêtre or balcony door. Never convert a door into a smaller window, and never convert a window into a door.",
@@ -151,11 +175,9 @@ function buildPrompt(config) {
     `Cabinet fronts: ${config.doorStyle || "flat"} style, ${config.facades || "matte white"} finish.`,
     `Worktop: ${config.worktop || "white quartz"}.`,
     `Backsplash: ${config.credence || "matching the worktop"}.`,
-    noHandles
-      ? "Cabinet fronts have no visible handles, push-to-open mechanism, perfectly flush and seamless."
-      : `Handles: ${config.handleType || "bar handles"} in ${config.handleColor || "black"} finish, consistent on every cabinet.`,
+    `Cabinet hardware (mandatory, identical on every single door and drawer, never mixed): ${handleDescriptor}.`,
     `Plinth (kickboard): ${config.plinth || "matching the cabinet fronts"}.`,
-    config.upperCabinets ? "Include new upper wall cabinets fitted to the ceiling height, without covering any window." : "Do not include upper wall cabinets, keep the wall above the worktop open.",
+    upperLine,
     appliancesLine,
     dishwasherLine,
     rangeConfusionLine,
@@ -165,7 +187,7 @@ function buildPrompt(config) {
     "Use standard 19 mm melamine cabinet carcasses, filler panels against walls and finished end panels on exposed sides, fitted around any window, door, boiler or radiator exactly where it already is.",
     "Respect real construction scale, realistic joins, shadows, reflections and natural perspective — the kitchen must look physically built in this exact room, not pasted on.",
     "Photorealistic single wide shot of the whole kitchen, professional interior photography, natural color grading. No collage, no split screen, no before/after comparison, no grid of images, no text, no logo, no watermark, no interface, no people, no pets.",
-    `Final check before rendering: the floor, walls, ceiling, every window, every door (including any porte-fenêtre or balcony door, which must stay a door) and any boiler, radiator or other technical equipment must remain exactly as in the original photo — the kitchen layout must match the requested wall count exactly${wallSideText ? ` (single wall: ${wallSideText})` : ""}, the oven and hob must stay two separate appliances, and only the kitchen furniture has changed.`
+    `Final check before rendering: the floor, walls, ceiling, every window, every door (including any porte-fenêtre or balcony door, which must stay a door) and any boiler, radiator or other technical equipment must remain exactly as in the original photo — the kitchen layout must match the requested wall count exactly${wallSideText ? ` (single wall: ${wallSideText})` : ""}, the oven and hob must stay two separate appliances, the cabinet hardware must exactly match the requested type (${noHandles ? "no handles/knobs" : /bouton/i.test(config.handleType || "") ? "round knobs, not bar handles" : "bar handles, not round knobs"}), upper wall cabinets must be ${config.upperCabinets ? "clearly present" : "absent"} exactly as requested, and only the kitchen furniture has changed.`
   ].filter(Boolean);
 
   return lines.join(" ");
