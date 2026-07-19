@@ -19,32 +19,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Photo ou configuration manquante." });
     }
 
-    const appliances = Array.isArray(config.appliances) && config.appliances.length
-      ? config.appliances.join(", ")
-      : "none";
-
-    const walls = [
-      config.wall1 ? `main wall ${config.wall1} cm` : "",
-      config.wall2 ? `second wall ${config.wall2} cm` : "",
-      config.wall3 ? `third wall ${config.wall3} cm` : ""
-    ].filter(Boolean).join(", ");
-
-    const prompt = [
-      "Photorealistic high-end kitchen renovation.",
-      "Preserve exactly the room shell from the reference photo: same camera angle, perspective, walls, windows, ceiling, floor and natural lighting.",
-      "Completely remove every existing kitchen cabinet, worktop, appliance, backsplash, table and loose furniture.",
-      "Do not recolor, repaint, restyle or reuse the existing kitchen.",
-      "Build a completely new made-to-measure kitchen from scratch in the room.",
-      `Kitchen layout: ${config.layout || "linear"}, ${walls}.`,
-      `Cabinet fronts: ${config.facades || "matte white"}.`,
-      `Worktop: ${config.worktop || "white quartz"}.`,
-      `Handles: ${config.handleType || "bar handles"} in ${config.handleColor || "black"} finish.`,
-      config.upperCabinets ? "Include new upper wall cabinets." : "Do not include upper wall cabinets.",
-      `Integrated appliances to include: ${appliances}.`,
-      "Use standard 19 mm melamine cabinet carcasses, filler panels against walls and finished end panels on exposed sides.",
-      "Respect real construction scale, realistic joins, shadows, reflections and natural perspective.",
-      "Professional interior photography. No text, no logo, no labels, no interface."
-    ].join(" ");
+    const prompt = buildPrompt(config);
 
     const upstream = await fetch(
       "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions",
@@ -94,4 +69,61 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ error: error.message || "Erreur serveur lors du lancement du rendu." });
   }
+}
+
+function buildPrompt(config) {
+  const appliances = Array.isArray(config.appliances) && config.appliances.length
+    ? config.appliances.join(", ")
+    : "none";
+
+  const walls = [
+    config.wall1 ? `main wall ${config.wall1} cm` : "",
+    config.wall2 ? `second wall ${config.wall2} cm` : "",
+    config.wall3 ? `third wall ${config.wall3} cm` : ""
+  ].filter(Boolean).join(", ");
+
+  const noHandles = /push|sans poignée/i.test(config.handleType || "") || /sans poignée/i.test(config.doorStyle || "");
+
+  const island = config.island
+    ? `Add a freestanding kitchen island, ${config.island.width || 140} by ${config.island.depth || 90} cm, matching the same cabinet fronts and worktop.${
+        config.island.feature && config.island.feature !== "Aucun" ? ` The island includes an integrated ${config.island.feature}.` : ""
+      }${config.island.seating ? " Add a bar overhang with counter-height seating on one side." : ""}`
+    : "Do not add any kitchen island; keep the floor space open.";
+
+  const corner = config.corner
+    ? `Corner cabinet solution: ${config.corner}.`
+    : "";
+
+  const lighting = config.lighting && (config.lighting.spots || config.lighting.led)
+    ? [
+        config.lighting.spots ? "Add recessed spotlights under the upper wall cabinets." : "",
+        config.lighting.led ? "Add a warm LED light strip along the underside of the worktop illuminating the backsplash." : ""
+      ].filter(Boolean).join(" ")
+    : "Do not add extra light fixtures beyond the room's existing natural and ambient light.";
+
+  const lines = [
+    "Photorealistic high-end kitchen renovation photo. Single wide shot of the whole kitchen, no collage, no split screen, no before/after comparison, no grid of images.",
+    "Preserve exactly the room shell from the reference photo: same camera angle, lens perspective, walls, windows, doors, ceiling, floor and natural lighting direction.",
+    "Completely remove every existing kitchen cabinet, worktop, appliance, backsplash, table and loose furniture before designing the new kitchen.",
+    "Do not simply recolor, repaint or restyle the existing kitchen — replace it entirely with a newly built made-to-measure kitchen.",
+    `Kitchen layout: ${config.layout || "linear"}${walls ? `, ${walls}` : ""}.`,
+    corner,
+    island,
+    `Cabinet fronts: ${config.doorStyle || "flat"} style, ${config.facades || "matte white"} finish.`,
+    `Worktop: ${config.worktop || "white quartz"}.`,
+    `Backsplash: ${config.credence || "matching the worktop"}.`,
+    noHandles
+      ? "Cabinet fronts have no visible handles, push-to-open mechanism, perfectly flush and seamless."
+      : `Handles: ${config.handleType || "bar handles"} in ${config.handleColor || "black"} finish, consistent on every cabinet.`,
+    `Plinth (kickboard): ${config.plinth || "matching the cabinet fronts"}.`,
+    config.upperCabinets ? "Include new upper wall cabinets fitted to the ceiling height." : "Do not include upper wall cabinets, keep the wall above the worktop open.",
+    `Integrated appliances to include: ${appliances}.`,
+    `Sink: ${config.sink || "stainless steel undermount"}. Faucet finish: ${config.faucet || "matte black"}.`,
+    lighting,
+    "Use standard 19 mm melamine cabinet carcasses, filler panels against walls and finished end panels on exposed sides.",
+    "Respect real construction scale, realistic joins, shadows, reflections and natural perspective — the kitchen must look physically built in this exact room, not pasted on.",
+    "Professional interior photography, natural color grading. No text, no logo, no watermark, no interface, no people, no pets."
+  ].filter(Boolean);
+
+  return lines.join(" ");
 }
