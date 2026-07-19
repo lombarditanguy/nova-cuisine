@@ -195,7 +195,7 @@
     .configurator-intro h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin:0 0 12px}
     .configurator-intro p.title{font-size:28px;font-weight:800;margin:0 0 12px}
     .configurator-intro p.sub{color:var(--muted);font-size:15px;margin:0}
-    .tool{display:grid;grid-template-columns:minmax(330px,430px) 1fr;border:1px solid var(--line);border-radius:16px;overflow:hidden;width:min(1180px,100%);margin:0 auto;min-height:640px;box-shadow:var(--shadow)}
+    .tool{display:grid;grid-template-columns:minmax(330px,430px) 1fr;border:1px solid var(--line);border-radius:16px;overflow:hidden;width:min(1180px,100%);margin:0 auto;box-shadow:var(--shadow)}
     .tool aside{padding:34px;border-right:1px solid var(--line);overflow:auto}
     .tool h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
     .tool h2.section{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.04em;text-transform:none;margin:30px 0 14px}
@@ -230,19 +230,21 @@
     .previewTop{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:17px}
     .status{font-size:12px;color:#16855a;background:#e7f8f0;padding:6px 10px;border-radius:20px}
     .tabs{display:flex;gap:25px;margin:24px auto 0;width:min(880px,100%)}.tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:0 0 9px;cursor:pointer;color:#737980;font:inherit;font-size:13px}.tab.active{color:var(--ink);border-color:var(--ink)}
-    .canvas-col{display:flex;flex-direction:column;flex:1;min-height:0}
-    .after-disclaimer{width:min(880px,100%);margin:0 auto 10px;text-align:center;font-size:11.5px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;line-height:1.5}
-    .canvas{flex:1;width:min(880px,100%);margin:0 auto;display:grid;place-items:center;min-height:420px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 18px 48px #1820440d}
-    .canvas img{max-width:100%;max-height:560px;display:none;object-fit:contain}
+    .preview-card{width:min(880px,100%);margin:0 auto;flex:1;display:flex;flex-direction:column;min-height:0;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 18px 48px #1820440d}
+    .after-disclaimer{margin:0;text-align:center;font-size:11.5px;color:#8a6a1f;background:#fdf3dc;border-bottom:1px solid #f3e1b8;padding:9px 14px;line-height:1.5}
+    .canvas{flex:1;width:100%;margin:0;display:grid;place-items:center;min-height:280px;max-height:520px;background:#fff;overflow:hidden}
+    .canvas img{max-width:100%;max-height:480px;display:none;object-fit:contain}
     .mediaWrap{position:relative;display:none;line-height:0}
-    .mediaWrap img{display:block;max-width:100%;max-height:560px;object-fit:contain}
+    .mediaWrap img{display:block;max-width:100%;max-height:480px;object-fit:contain}
     .empty{text-align:center;color:var(--muted);max-width:330px;line-height:1.6}.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
     .loading{display:none;text-align:center;color:#555}
     .spinner{width:30px;height:30px;border:3px solid #d9e2ff;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .lead-box{width:min(880px,100%);margin:20px auto 0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px;box-shadow:var(--shadow)}
+    .lead-box{width:100%;margin:0;background:var(--panel);border-top:1px solid var(--line);padding:26px}
     .lead-box h3{font-size:16px;margin:0 0 6px}
     .lead-box .lead-sub{font-size:13px;color:var(--muted);margin:0 0 6px}
+    @keyframes leadPulse{0%,100%{box-shadow:0 0 0 0 rgba(40,92,255,0)}30%{box-shadow:0 0 0 6px rgba(40,92,255,.16)}}
+    .lead-box.pulse{animation:leadPulse 1.1s ease-out 2}
     @media(max-width:850px){.tool{grid-template-columns:1fr}.tool aside{border-right:0;border-bottom:1px solid var(--line)}}
 
     /* testimonials */
@@ -459,29 +461,30 @@
         <div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div>
         <p class="disclaimer">Aperçu généré par IA à visée illustrative — la composition exacte (nombre et dimensions des meubles) est celle du panneau <strong>Composition estimée</strong>, calculée indépendamment de l'image.</p>
         <p class="hint hidden" id="wallPickHintBig">Implantation linéaire : cliquez sur le mur de la photo où vous voulez la cuisine.</p>
-        <div class="canvas-col">
-          <p class="disclaimer after-disclaimer hidden" id="afterDisclaimer">Cette image sert d'illustration pour vous donner une idée des codes couleurs et de la disposition — elle ne constitue pas un plan fiable ni un engagement sur les dimensions ou l'implantation exactes.</p>
+
+        <div class="preview-card">
+          <p class="after-disclaimer hidden" id="afterDisclaimer">Cette image sert d'illustration pour vous donner une idée des codes couleurs et de la disposition — elle ne constitue pas un plan fiable ni un engagement sur les dimensions ou l'implantation exactes.</p>
           <div class="canvas">
             <div class="mediaWrap" id="beforeWrap"><img id="before" alt="Photo source"><div class="wallMarker hidden" id="wallMarkerBig"></div></div>
             <img id="after" alt="Rendu de la cuisine généré">
             <div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div>
             <div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div>
           </div>
-        </div>
 
-        <div class="lead-box hidden" id="leadBox">
-          <h3>Ce projet vous plaît ?</h3>
-          <p class="lead-sub">Laissez vos coordonnées pour recevoir un devis personnalisé — nous vous recontactons rapidement.</p>
-          <form id="leadForm">
-            <div class="row">
-              <div><label for="leadName">Nom</label><input id="leadName" type="text" required autocomplete="name"></div>
-              <div><label for="leadPhone">Téléphone</label><input id="leadPhone" type="tel" autocomplete="tel"></div>
-            </div>
-            <label for="leadEmail">Email</label><input id="leadEmail" type="email" required autocomplete="email">
-            <label for="leadMessage">Message (optionnel)</label><textarea id="leadMessage" maxlength="500" placeholder="Précisions sur votre projet, délai souhaité…"></textarea>
-            <button class="generate" type="submit">Demander mon devis</button>
-            <p class="note">Ouvre votre application e-mail avec votre demande pré-remplie, à destination de NOVA Cuisine.</p>
-          </form>
+          <div class="lead-box hidden" id="leadBox">
+            <h3>Ce rendu vous plaît ? Demandez votre devis ↓</h3>
+            <p class="lead-sub">Laissez vos coordonnées pour recevoir un devis personnalisé — nous vous recontactons rapidement.</p>
+            <form id="leadForm">
+              <div class="row">
+                <div><label for="leadName">Nom</label><input id="leadName" type="text" required autocomplete="name"></div>
+                <div><label for="leadPhone">Téléphone</label><input id="leadPhone" type="tel" autocomplete="tel"></div>
+              </div>
+              <label for="leadEmail">Email</label><input id="leadEmail" type="email" required autocomplete="email">
+              <label for="leadMessage">Message (optionnel)</label><textarea id="leadMessage" maxlength="500" placeholder="Précisions sur votre projet, délai souhaité…"></textarea>
+              <button class="generate" type="submit">Demander mon devis</button>
+              <p class="note">Ouvre votre application e-mail avec votre demande pré-remplie, à destination de NOVA Cuisine.</p>
+            </form>
+          </div>
         </div>
       </section>
     </div>
@@ -802,6 +805,11 @@ $("#generate").onclick=async()=>{
     if(!url)throw Error("Le rendu est toujours en cours. Attendez une minute puis relancez la génération.");
     $("#after").src=url;lastRenderUrl=url;show("after");$("#status").textContent="Rendu prêt";
     $("#leadBox").classList.remove("hidden");
+    setTimeout(()=>{
+      $("#leadBox").scrollIntoView({behavior:"smooth",block:"center"});
+      $("#leadBox").classList.add("pulse");
+      setTimeout(()=>$("#leadBox").classList.remove("pulse"),2400);
+    },400);
   }catch(e){
     $("#error").textContent=e.message;$("#error").style.display="block";$("#status").textContent="Erreur";
   }finally{
