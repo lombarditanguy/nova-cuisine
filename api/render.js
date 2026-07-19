@@ -72,9 +72,7 @@ export default async function handler(req, res) {
 }
 
 function buildPrompt(config) {
-  const appliances = Array.isArray(config.appliances) && config.appliances.length
-    ? config.appliances.join(", ")
-    : "none";
+  const applianceList = Array.isArray(config.appliances) ? config.appliances.filter(Boolean) : [];
 
   const walls = [
     config.wall1 ? `main wall ${config.wall1} cm` : "",
@@ -101,12 +99,38 @@ function buildPrompt(config) {
       ].filter(Boolean).join(" ")
     : "Do not add extra light fixtures beyond the room's existing natural and ambient light.";
 
+  const layoutValue = config.layout || "linéaire";
+  const layoutConstraint = /linéaire|linear/i.test(layoutValue)
+    ? "This is a strictly single-wall (linear) kitchen: place every cabinet, the worktop and every appliance along ONE wall only. Even if the room has a corner or a second visible wall, that adjacent wall must remain exactly as in the reference photo, with no cabinet, worktop or appliance placed on it."
+    : /en l\b/i.test(layoutValue)
+    ? "This is an L-shaped kitchen across exactly two adjoining walls meeting at a right angle. Do not add cabinetry to any third wall."
+    : /en u\b/i.test(layoutValue)
+    ? "This is a U-shaped kitchen across exactly three walls. Do not extend cabinetry beyond these three walls."
+    : "";
+
+  const hasDishwasher = applianceList.some(a => /lave.vaisselle/i.test(a));
+  const dishwasherLine = hasDishwasher
+    ? "The dishwasher is fully integrated (encastré): it is hidden behind a decor door panel that exactly matches the surrounding cabinet fronts in color, material and style — no visible white or stainless appliance face, no visible control panel, it must look like a normal cabinet door."
+    : "";
+
+  const appliancesLine = applianceList.length
+    ? `Integrated appliances to include, exactly one of each, never duplicated: ${applianceList.join(", ")}.`
+    : "No integrated appliances beyond what is strictly necessary.";
+
+  const notes = typeof config.notes === "string" ? config.notes.trim().slice(0, 500) : "";
+  const notesLine = notes
+    ? `Additional client instructions specific to this room — follow them precisely and let them override any conflicting instruction above: ${notes}.`
+    : "";
+
   const lines = [
     "This is a precise photo edit of the exact reference photo provided, not a new scene: same room, same photo, same camera angle and framing, same distance and lens perspective.",
-    "Keep 100% identical and pixel-accurate, exactly as in the reference photo, in shape, color, material and position: the floor (same material, color and pattern), every wall (same color and texture), the ceiling, every window (same size, position and frame), every door, and any technical or fixed equipment visible such as a boiler, water heater, radiator, thermostat, electrical panel, meter box, light switch, socket, pipe or vent.",
+    "Keep 100% identical and pixel-accurate, exactly as in the reference photo, in shape, color, material and position: the floor (same material, color and pattern), every wall (same color and texture), the ceiling, every window (same size, position and frame), and any technical or fixed equipment visible such as a boiler, water heater, radiator, thermostat, electrical panel, meter box, light switch, socket, pipe or vent.",
+    "Every door must keep exactly the same type, height, width, position and opening mechanism as in the reference photo — including any full-height glazed door, French door, sliding door, porte-fenêtre or balcony door. Never convert a door into a smaller window, and never convert a window into a door.",
     "The only thing allowed to change in the whole photo is the kitchen furniture itself: remove the existing kitchen cabinets, worktop, kitchen appliances, kitchen backsplash and any freestanding kitchen table or chairs, and replace them with the new made-to-measure kitchen described below. Do not remove, move, resize, recolor or redesign anything else in the room — no window, no door, no boiler, no radiator, no floor, no wall.",
     "Do not simply recolor, repaint or restyle the existing kitchen furniture — rebuild it entirely as a newly built kitchen, while leaving every other element of the room untouched.",
-    `Kitchen layout: ${config.layout || "linear"}${walls ? `, ${walls}` : ""}.`,
+    notesLine,
+    `Kitchen layout: ${layoutValue}${walls ? `, ${walls}` : ""}.`,
+    layoutConstraint,
     corner,
     island,
     `Cabinet fronts: ${config.doorStyle || "flat"} style, ${config.facades || "matte white"} finish.`,
@@ -117,13 +141,14 @@ function buildPrompt(config) {
       : `Handles: ${config.handleType || "bar handles"} in ${config.handleColor || "black"} finish, consistent on every cabinet.`,
     `Plinth (kickboard): ${config.plinth || "matching the cabinet fronts"}.`,
     config.upperCabinets ? "Include new upper wall cabinets fitted to the ceiling height, without covering any window." : "Do not include upper wall cabinets, keep the wall above the worktop open.",
-    `Integrated appliances to include: ${appliances}.`,
-    `Sink: ${config.sink || "stainless steel undermount"}. Faucet finish: ${config.faucet || "matte black"}.`,
+    appliancesLine,
+    dishwasherLine,
+    `Sink: ${config.sink || "stainless steel undermount"}, a single sink only. Faucet finish: ${config.faucet || "matte black"}, a single faucet only.`,
     lighting,
     "Use standard 19 mm melamine cabinet carcasses, filler panels against walls and finished end panels on exposed sides, fitted around any window, door, boiler or radiator exactly where it already is.",
     "Respect real construction scale, realistic joins, shadows, reflections and natural perspective — the kitchen must look physically built in this exact room, not pasted on.",
     "Photorealistic single wide shot of the whole kitchen, professional interior photography, natural color grading. No collage, no split screen, no before/after comparison, no grid of images, no text, no logo, no watermark, no interface, no people, no pets.",
-    "Final check before rendering: the floor, walls, ceiling, windows, doors, and any boiler, radiator or other technical equipment must remain exactly as in the original photo — only the kitchen furniture has changed."
+    "Final check before rendering: the floor, walls, ceiling, every window, every door (including any porte-fenêtre or balcony door, which must stay a door) and any boiler, radiator or other technical equipment must remain exactly as in the original photo — the kitchen layout must match the requested wall count exactly, and only the kitchen furniture has changed."
   ].filter(Boolean);
 
   return lines.join(" ");

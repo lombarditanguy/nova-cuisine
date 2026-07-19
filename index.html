@@ -19,14 +19,15 @@
     header{height:84px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5vw;background:var(--paper)}
     .brand{font-weight:600;letter-spacing:.14em;font-size:22px}.brand span{font-weight:400;color:var(--accent)}
     .tag{letter-spacing:.16em;text-transform:uppercase;font-size:11px;color:#8a8578}
-    main{display:grid;grid-template-columns:minmax(340px,440px) 1fr;min-height:calc(100vh - 84px)}
-    aside{padding:36px;border-right:1px solid var(--line);overflow:auto;background:var(--paper)}
+    main{display:grid;grid-template-columns:minmax(340px,440px) 1fr;height:calc(100vh - 84px)}
+    aside{padding:36px;border-right:1px solid var(--line);overflow-y:auto;background:var(--paper)}
     h2.section{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:16px;letter-spacing:.01em;margin:32px 0 16px;display:flex;align-items:center;gap:10px}
     h2.section:first-of-type{margin-top:0}
     h2.section .n{width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font-family:Inter;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
     h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:20px 0 9px;color:#8a8578;font-weight:700}
     label{display:block;font-size:11px;color:#6f6a5f;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin:13px 0 7px}
     input,select{width:100%;height:46px;border:1px solid var(--line);border-radius:8px;padding:0 13px;font:inherit;background:#fff;color:var(--ink)}
+    textarea{width:100%;min-height:80px;border:1px solid var(--line);border-radius:8px;padding:11px 13px;font:inherit;background:#fff;color:var(--ink);resize:vertical}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
     .hidden{display:none!important}
@@ -50,7 +51,7 @@
     .generate:disabled{opacity:.55;cursor:wait}
     .note,.error{font-size:12px;text-align:center;color:var(--muted);margin:11px 0}
     .error{color:var(--err);text-align:left;display:none;background:#fbecea;border-radius:8px;padding:9px 11px}
-    section.preview{padding:36px;background:#f8f6f2;display:flex;flex-direction:column;min-width:0}
+    section.preview{padding:36px;background:#f8f6f2;display:flex;flex-direction:column;min-width:0;overflow-y:auto}
     .previewTop{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:17px}
     .previewTop h2{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:19px;margin:0}
     .status{font-size:12px;color:var(--ok);background:#e7f8f0;padding:6px 11px;border-radius:20px;font-weight:600}
@@ -64,7 +65,7 @@
     .loading{display:none;text-align:center;color:#555}
     .spinner{width:30px;height:30px;border:3px solid #ecdfd0;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @media(max-width:850px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}section.preview{min-height:620px}header{padding:0 20px}.tag{display:none}}
+    @media(max-width:850px){main{grid-template-columns:1fr;height:auto}aside{border-right:0;border-bottom:1px solid var(--line);overflow:visible}section.preview{min-height:620px;overflow:visible}header{padding:0 20px}.tag{display:none}}
   </style>
 </head>
 <body>
@@ -111,6 +112,10 @@
   <label class="upload" for="photo">Importer la photo de la pièce <small>JPG, PNG ou WEBP · une vue large et bien éclairée est recommandée</small><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
   <img id="source" alt="Photo de la pièce">
   <p class="warning" id="sourceWarning">Photo de faible résolution : pour un rendu plus précis, utilisez une photo d'au moins 1000 px de large.</p>
+
+  <h2 class="section"><span class="n">7</span>Précisions pour l'IA</h2>
+  <label for="notes">Instructions particulières (optionnel)</label>
+  <textarea id="notes" maxlength="500" placeholder="Ex. : la chaudière dans l'angle sera enlevée. Le sol sera refait en chêne clair. Le tuyau apparent au plafond sera caché."></textarea>
 
   <h3>Composition estimée</h3><div class="estimate" id="estimate"></div>
   <button class="generate" id="generate">Générer le rendu dans ma pièce</button>
@@ -283,7 +288,8 @@ $("#generate").onclick=async()=>{
       facades:selected.facades,worktop:selected.worktop,credence:selected.credence,
       handleType:selected.handleType,handleColor:selected.handleColor,plinth:selected.plinth,
       sink:selected.sink,faucet:selected.faucet,
-      lighting:{spots:$("#lightingSpots").checked,led:$("#lightingLed").checked}
+      lighting:{spots:$("#lightingSpots").checked,led:$("#lightingLed").checked},
+      notes:$("#notes").value.trim().slice(0,500)
     };
     let r=await fetch("/api/render",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:photoData,config})});
     let d=await r.json();
