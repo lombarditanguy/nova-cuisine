@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({  
           input: {  
             prompt,  
-            input_image: image,  
+            input_url: image,  
             aspect_ratio: "match_input_image",  
             output_format: "jpg",  
             safety_tolerance: 2,  
