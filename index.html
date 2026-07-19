@@ -109,7 +109,7 @@
   </script>
 
   <style>
-    :root{--ink:#15171a;--muted:#6d737b;--line:#e6e8ea;--blue:#285cff;--blue-dark:#1a44cc;--panel:#eef1f8;--bg-soft:#fbfbfc;--oak:#b9764a;--oak-soft:#f8ece0;--shadow:0 10px 30px -10px rgba(21,23,26,.14)}
+    :root{--ink:#15171a;--muted:#6d737b;--line:#e6e8ea;--blue:#285cff;--blue-dark:#1a44cc;--panel:#eef1f8;--bg-soft:#fbfbfc;--oak:#b9764a;--oak-soft:#f8ece0;--anthracite:#34373d;--anthracite-dark:#202226;--shadow:0 10px 30px -10px rgba(21,23,26,.14)}
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.5}
@@ -144,10 +144,18 @@
     .hero-visual-bar{display:flex;gap:6px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
     .hero-visual-bar span{width:9px;height:9px;border-radius:50%;background:#d7dbe0;display:inline-block}
     .hero-visual-body{display:grid;grid-template-columns:1fr 1fr;min-height:280px}
-    .hero-visual-before,.hero-visual-after{display:flex;align-items:flex-end;padding:18px;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;position:relative}
-    .hero-visual-before{background:linear-gradient(135deg,#c9ccd1,#8b9096)}
-    .hero-visual-after{background:linear-gradient(135deg,var(--blue),#6f8bff)}
-    .hero-visual-badge{position:absolute;top:16px;right:16px;background:#fff;color:var(--ink);font-size:11px;font-weight:800;padding:6px 12px;border-radius:20px;box-shadow:var(--shadow)}
+    .hero-visual-before,.hero-visual-after{display:flex;align-items:flex-end;padding:18px;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;position:relative;overflow:hidden}
+    .hero-visual-before{background:linear-gradient(160deg,#e4ded3,#b9ada0 65%,#a99c8c)}
+    .hero-visual-before::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:repeating-linear-gradient(90deg,#c7a883,#c7a883 22px,#bb9b74 22px,#bb9b74 24px)}
+    .hero-visual-before{color:#3c342a}
+    .hero-visual-after{background:linear-gradient(160deg,var(--anthracite),var(--anthracite-dark) 70%);color:#fff}
+    .hero-visual-after::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:repeating-linear-gradient(90deg,#a9764a,#a9764a 22px,#996a41 22px,#996a41 24px)}
+    .hero-visual-badge{position:absolute;top:16px;right:16px;background:#fff;color:var(--ink);font-size:11px;font-weight:800;padding:6px 12px;border-radius:20px;box-shadow:var(--shadow);z-index:2}
+    .hero-visual-before span,.hero-visual-after span:not(.hero-visual-badge){position:relative;z-index:1}
+    .pendant{position:absolute;top:0;width:2px;height:34px;background:#5a5e66;z-index:1}
+    .pendant::after{content:"";position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:16px;height:11px;border-radius:0 0 8px 8px;background:#efd9ab;box-shadow:0 3px 10px 2px rgba(239,217,171,.55)}
+    .pendant.p1{left:30%}
+    .pendant.p2{left:44%}
     @media(max-width:600px){.hero-visual-body{grid-template-columns:1fr}}
 
     /* generic section titles */
@@ -183,8 +191,8 @@
     .gallery-pair{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
     .gallery-visual{display:grid;grid-template-columns:1fr 1fr;height:160px;position:relative}
     .gallery-before,.gallery-after{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff}
-    .gallery-before{background:linear-gradient(135deg,#9aa1a8,#6d737b)}
-    .gallery-after{background:linear-gradient(135deg,var(--blue),#5f7dff)}
+    .gallery-before{background:linear-gradient(135deg,#c9ccd1,#9aa1a8)}
+    .gallery-after{background:linear-gradient(135deg,var(--anthracite),var(--oak))}
     .gallery-visual::after{content:"IA";position:absolute;top:10px;right:10px;background:#fff;color:var(--ink);font-size:10px;font-weight:800;letter-spacing:.06em;padding:4px 8px;border-radius:14px;box-shadow:var(--shadow)}
     .gallery-cap{padding:14px 16px;font-size:12.5px;color:var(--muted)}
     .gallery-note{text-align:center;color:var(--muted);font-size:12px;margin:22px auto 0;max-width:520px}
@@ -288,8 +296,8 @@
       <div class="hero-visual">
         <div class="hero-visual-bar"><span></span><span></span><span></span></div>
         <div class="hero-visual-body">
-          <div class="hero-visual-before">Photo de votre pièce</div>
-          <div class="hero-visual-after"><span class="hero-visual-badge">Rendu généré par IA</span>Votre nouvelle cuisine</div>
+          <div class="hero-visual-before"><span>Photo de votre pièce</span></div>
+          <div class="hero-visual-after"><span class="hero-visual-badge">Rendu généré par IA</span><i class="pendant p1"></i><i class="pendant p2"></i><span>Votre nouvelle cuisine</span></div>
         </div>
       </div>
     </div>
