@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     ].join(" ");
 
     const upstream = await fetch(  
-      "https://api.replicate.com/v1/predictions",  
+      "https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions",  
       {  
         method: "POST",  
         headers: {  
@@ -69,23 +69,36 @@ export default async function handler(req, res) {
           Prefer: "wait=5"  
         },  
         body: JSON.stringify({  
-          version: "black-forest-labs/flux-kontext-pro",  
           input: {  
             prompt,  
             input_image: image,  
-            output_format: "jpg"  
+            aspect_ratio: "match_input_image",  
+            output_format: "jpg",  
+            safety_tolerance: 2,  
+            prompt_upsampling: false  
           }  
         })  
       }  
     );
 
-    const prediction = await upstream.json();
+    const rawResponse = await upstream.text();
+
+    let prediction;
+
+    try {  
+      prediction = JSON.parse(rawResponse);  
+    } catch {  
+      return res.status(502).json({  
+        error: `Le moteur de rendu a retourné une réponse invalide : ${rawResponse.slice(0, 250)}`  
+      });  
+    }
 
     if (!upstream.ok) {  
       return res.status(upstream.status).json({  
         error:  
           prediction.detail ||  
           prediction.error ||  
+          prediction.title ||  
           "La génération n’a pas pu démarrer."  
       });  
     }
@@ -101,7 +114,7 @@ export default async function handler(req, res) {
     });  
   } catch (error) {  
     return res.status(500).json({  
-      error: error.message || "Erreur serveur."  
+      error: error.message || "Erreur serveur lors du lancement du rendu."  
     });  
   }  
 }  
