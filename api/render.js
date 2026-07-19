@@ -126,6 +126,10 @@ function buildPrompt(config) {
     ? "The dishwasher is fully integrated (encastré): it is hidden behind a decor door panel that exactly matches the surrounding cabinet fronts in color, material and style — no visible white or stainless appliance face, no visible control panel, it must look like a normal cabinet door."
     : "";
 
+  const noExtraAppliancesLine = `Do not add any appliance that is not explicitly listed in the mandatory specification above.${
+    hasDishwasher ? "" : " In particular, do NOT add a dishwasher: none was selected."
+  } Never add a washing machine, tumble dryer or any other laundry equipment under any circumstance — this is a kitchen, not a utility room, regardless of what the reference photo shows.`;
+
   const hasOven = applianceList.some(a => /four/i.test(a));
   const hasHob = applianceList.some(a => /plaque/i.test(a));
   const rangeConfusionLine = hasOven && hasHob
@@ -154,6 +158,7 @@ function buildPrompt(config) {
     corner,
     island,
     dishwasherLine,
+    noExtraAppliancesLine,
     rangeConfusionLine,
     hobTypeLine,
     `Sink: ${config.sink || "stainless steel undermount"} (single sink). Faucet: ${config.faucet || "matte black"} (single faucet).`,
@@ -161,7 +166,7 @@ function buildPrompt(config) {
     "Standard 19 mm melamine cabinet carcasses, filler and end panels fitted around any window, door, boiler or radiator exactly where it already is.",
     "Realistic construction scale, joins, shadows and perspective — the kitchen must look physically built in this room, not pasted on.",
     "Photorealistic single wide shot, professional interior photography. No collage, no split screen, no text, no logo, no watermark, no people, no pets.",
-    `Reminder of the mandatory specification: cabinet fronts exactly ${config.facades || "matte white"} (not the old color), worktop ${config.worktop || "white quartz"}, plinth exactly ${config.plinth || "matching the cabinet fronts"} (not the old color), hardware ${noHandles ? "no handles/knobs" : `${handleShapeWord} in ${handleColorValue} finish (not another color, not another shape)`}, upper wall cabinets ${config.upperCabinets ? "present" : "absent"}, single-wall layout${wallSideText ? ` on ${wallSideText}` : ""} with no corner.`
+    `Reminder of the mandatory specification: cabinet fronts exactly ${config.facades || "matte white"} (not the old color), worktop ${config.worktop || "white quartz"}, plinth exactly ${config.plinth || "matching the cabinet fronts"} (not the old color), hardware ${noHandles ? "no handles/knobs" : `${handleShapeWord} in ${handleColorValue} finish (not another color, not another shape)`}, upper wall cabinets ${config.upperCabinets ? "present" : "absent"}, single-wall layout${wallSideText ? ` on ${wallSideText}` : ""} with no corner, appliances strictly limited to ${applianceList.length ? applianceList.join(", ") : "none"} — no washing machine, no dryer, no unlisted appliance of any kind.`
   ].filter(Boolean);
 
   return lines.join(" ");
