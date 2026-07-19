@@ -4,7 +4,7 @@
   2. Domaine réel : toutes les URLs "https://www.nova-cuisine.fr" (canonical, Open Graph, JSON-LD, sitemap.xml).
   3. Adresse postale si nécessaire (aucune adresse n'est affichée pour l'instant).
   4. Avis clients (section #avis) : témoignages fictifs à remplacer par de vrais retours clients.
-  5. Galerie avant/après (section #galerie) : illustrations schématiques à remplacer par de vraies photos de projets.
+  5. Galerie avant/après (section #galerie) : illustrations schématiques à remplacer par de vraies photos de projets (le hero utilise déjà une vraie photo : assets/realisation-1.png).
   6. Liens réseaux sociaux (footer et JSON-LD "sameAs") — aucun compte pour l'instant.
 -->
 <!doctype html>
@@ -25,9 +25,11 @@
   <meta property="og:description" content="Importez une photo de votre pièce, configurez votre cuisine sur mesure et visualisez le résultat en rendu photoréaliste généré par IA avant de commander.">
   <meta property="og:url" content="https://www.nova-cuisine.fr/">
   <meta property="og:locale" content="fr_FR">
+  <meta property="og:image" content="https://www.nova-cuisine.fr/assets/realisation-1.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="NOVA Cuisine — Configurateur de cuisine sur mesure avec rendu IA">
   <meta name="twitter:description" content="Configurez votre cuisine et visualisez-la par IA dans votre propre pièce avant de commander.">
+  <meta name="twitter:image" content="https://www.nova-cuisine.fr/assets/realisation-1.png">
 
   <script type="application/ld+json">
   {
@@ -140,23 +142,9 @@
     .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
     .cta-secondary{border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px 18px;font-weight:700;font-size:13px;text-decoration:none}
     .trust-row{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin-top:44px;color:var(--muted);font-size:12px;letter-spacing:.03em}
-    .hero-visual{position:relative;z-index:1;margin:52px auto 0;width:min(880px,100%);border-radius:18px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);overflow:hidden;text-align:left}
-    .hero-visual-bar{display:flex;gap:6px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
-    .hero-visual-bar span{width:9px;height:9px;border-radius:50%;background:#d7dbe0;display:inline-block}
-    .hero-visual-body{display:grid;grid-template-columns:1fr 1fr;min-height:280px}
-    .hero-visual-before,.hero-visual-after{display:flex;align-items:flex-end;padding:18px;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;position:relative;overflow:hidden}
-    .hero-visual-before{background:linear-gradient(160deg,#e4ded3,#b9ada0 65%,#a99c8c)}
-    .hero-visual-before::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:repeating-linear-gradient(90deg,#c7a883,#c7a883 22px,#bb9b74 22px,#bb9b74 24px)}
-    .hero-visual-before{color:#3c342a}
-    .hero-visual-after{background:linear-gradient(160deg,var(--anthracite),var(--anthracite-dark) 70%);color:#fff}
-    .hero-visual-after::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:repeating-linear-gradient(90deg,#a9764a,#a9764a 22px,#996a41 22px,#996a41 24px)}
-    .hero-visual-badge{position:absolute;top:16px;right:16px;background:#fff;color:var(--ink);font-size:11px;font-weight:800;padding:6px 12px;border-radius:20px;box-shadow:var(--shadow);z-index:2}
-    .hero-visual-before span,.hero-visual-after span:not(.hero-visual-badge){position:relative;z-index:1}
-    .pendant{position:absolute;top:0;width:2px;height:34px;background:#5a5e66;z-index:1}
-    .pendant::after{content:"";position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:16px;height:11px;border-radius:0 0 8px 8px;background:#efd9ab;box-shadow:0 3px 10px 2px rgba(239,217,171,.55)}
-    .pendant.p1{left:30%}
-    .pendant.p2{left:44%}
-    @media(max-width:600px){.hero-visual-body{grid-template-columns:1fr}}
+    .hero-photo{position:relative;z-index:1;margin:52px auto 0;width:min(900px,100%);border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
+    .hero-photo img{display:block;width:100%;height:auto;max-height:520px;object-fit:cover}
+    .hero-photo figcaption{position:absolute;left:18px;bottom:18px;background:#fff;color:var(--ink);font-size:12px;font-weight:800;padding:8px 14px;border-radius:20px;box-shadow:var(--shadow)}
 
     /* generic section titles */
     .section-head{text-align:center;max-width:640px;margin:0 auto 40px}
@@ -293,13 +281,10 @@
         <span>Rendu généré par IA en quelques minutes</span>
         <span>Devis personnalisé sur demande</span>
       </div>
-      <div class="hero-visual">
-        <div class="hero-visual-bar"><span></span><span></span><span></span></div>
-        <div class="hero-visual-body">
-          <div class="hero-visual-before"><span>Photo de votre pièce</span></div>
-          <div class="hero-visual-after"><span class="hero-visual-badge">Rendu généré par IA</span><i class="pendant p1"></i><i class="pendant p2"></i><span>Votre nouvelle cuisine</span></div>
-        </div>
-      </div>
+      <figure class="hero-photo">
+        <img src="assets/realisation-1.png" alt="Cuisine sur mesure réalisée par NOVA Cuisine, façades bois et crédence effet béton" width="572" height="323" loading="eager">
+        <figcaption>Une de nos réalisations</figcaption>
+      </figure>
     </div>
   </section>
 
