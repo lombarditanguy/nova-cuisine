@@ -1,8 +1,0 @@
-{  
-  "rewrites": [  
-    { "source": "/api/render", "destination": "/api/render.js" },  
-    { "source": "/api/prediction", "destination": "/api/prediction.js" },  
-    { "source": "/api/diagnostic", "destination": "/api/diagnostic.js" },  
-    { "source": "/(.*)", "destination": "/index.html" }  
-  ]  
-}  
