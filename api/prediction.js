@@ -1,7 +1,7 @@
 export default async function handler(req, res) {  
   res.setHeader('Access-Control-Allow-Origin', '*');  
     
-  const { id } = req.query;  
+  res.setHeader('Cache-Control', 'no-store');    
   if (!id) return res.status(400).json({ error: 'Missing prediction id' });
 
   try {  
