@@ -153,6 +153,7 @@
       <h2><span class="n">4</span>Finitions &amp; évier</h2>
       <label>Façades</label><div class="choices" id="facadesChoices"></div>
       <label>Type d'évier</label><div class="choices wide" id="sinkChoices"></div>
+      <label>Crédence</label><div class="choices wide" id="credenceChoices"></div>
 
       <h2><span class="n">5</span>Disposition</h2>
       <p class="note" style="text-align:left;margin:0 0 10px">Choisissez le mur de chaque élément.</p>
@@ -210,9 +211,10 @@ function initApp(){
   const DATA={
     appliances:["Four","Four à vapeur","Plaque induction","Hotte aspirante","Réfrigérateur","Lave-vaisselle","Micro-ondes","Cave à vin"],
     facades:[{n:"Blanc mat",h:"#f4f2ee"},{n:"Chêne naturel",h:"#c9a06a"},{n:"Noir mat",h:"#1c1c1c"},{n:"Vert sauge",h:"#8a9a7c"},{n:"Bleu nuit",h:"#28344a"},{n:"Terracotta",h:"#c1694a"}],
-    sink:["Sous plan inox","Céramique blanche","Résine noire","Vasque à poser"]
+    sink:["Sous plan inox","Céramique blanche","Résine noire","Vasque à poser"],
+    credence:["Aucune","Carrelage blanc","Crédence inox","Verre laqué noir","Assortie au plan de travail"]
   };
-  let selected={appliances:new Set(["Four","Plaque induction","Réfrigérateur"]),facades:"Blanc mat",sink:"Sous plan inox"};
+  let selected={appliances:new Set(["Four","Plaque induction","Réfrigérateur"]),facades:"Blanc mat",sink:"Sous plan inox",credence:"Aucune"};
 
   function dot(h){return h?`<span class="dot" style="background:${h}"></span>`:""}
   function renderChoices(containerId,items,{multi=false,current}={}){
@@ -243,9 +245,11 @@ function initApp(){
   renderChoices("#applianceChoices",DATA.appliances,{multi:true,current:selected.appliances});
   renderChoices("#facadesChoices",DATA.facades,{current:selected.facades});
   renderChoices("#sinkChoices",DATA.sink,{current:selected.sink});
+  renderChoices("#credenceChoices",DATA.credence,{current:selected.credence});
   bindChoice("#applianceChoices","appliances",{multi:true});
   bindChoice("#facadesChoices","facades");
   bindChoice("#sinkChoices","sink");
+  bindChoice("#credenceChoices","credence");
 
   function layouts(){
     const l=$("#layout").value;
@@ -268,7 +272,9 @@ function initApp(){
     baseDepth:50,   // profondeur meuble bas (plan de travail 600, débord 50, mur 50)
     cornerFiller:4, // fileur d'angle — largeur à confirmer avec vous, valeur d'attente
     finishFiller:2, // fileur de finition (extrémité contre un mur) — largeur d'attente
-    finishSide:2    // joue de finition (extrémité libre) — largeur affichée provisoire, profondeur réelle (+5cm mur) à préciser en liste de débit
+    finishSide:2,   // joue de finition (extrémité libre) — largeur affichée provisoire, profondeur réelle (+5cm mur) à préciser en liste de débit
+    baseH:90,       // hauteur meuble bas (plinthe + porte)
+    upperDepth:35   // profondeur meuble haut — valeur d'attente à confirmer
   };
 
   function facadeHex(){return (DATA.facades.find(f=>f.n===selected.facades)||{}).h||"#f4f2ee"}
@@ -333,7 +339,7 @@ function initApp(){
       const order=[];
       applItems.forEach(it=>order.push({type:"appliance",key:it.key}));
       const used0=applItems.reduce((s,it)=>s+it.width,0);
-      standardBreakdown(Math.max(0,budget-used0)).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend}));
+      standardBreakdown(Math.max(0,budget-used0)).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend,front:{kind:"door"}}));
       wallOrder[i]=order;
       wallLastBudget[i]=budget;
       return order;
@@ -346,7 +352,7 @@ function initApp(){
       if(!order.some(e=>e.type==="appliance"&&e.key===it.key))order.push({type:"appliance",key:it.key});
     });
     const grew=budget-(wallLastBudget[i]??budget);
-    if(grew>0)standardBreakdown(grew).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend}));
+    if(grew>0)standardBreakdown(grew).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend,front:{kind:"door"}}));
     wallLastBudget[i]=budget;
     wallOrder[i]=order;
     return order;
@@ -440,6 +446,8 @@ function initApp(){
     if(feature==="Plaque de cuisson"||feature==="Plaque et évier")units.push({width:60,tall:false,label:"Plaque",legend:"Plaque (îlot)",isHob:true});
     if(feature==="Évier"||feature==="Plaque et évier")units.push({width:80,tall:false,label:"Évier",legend:`Évier îlot (${selected.sink})`,isSink:true});
     fillStandard(units,Math.max(0,width-units.reduce((s,u)=>s+u.width,0)));
+    let cum=0;
+    units.forEach(u=>{u.x=cum;cum+=u.width});
     return {length:width,depth,units,hasHob:feature==="Plaque de cuisson"||feature==="Plaque et évier",hasSink:feature==="Évier"||feature==="Plaque et évier"};
   }
   function buildWallsPlan(island,items){
@@ -462,7 +470,7 @@ function initApp(){
       const fe=freeEnds(i,layout);
       if(w.cornerStart)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
       if(fe.start)w.units.push(endPieceFor(i,"start"));
-      if(w.cornerStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,label:null});
+      if(w.cornerStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,label:null,front:{kind:"door"}});
       const endPiece=fe.end?endPieceFor(i,"end"):null;
       const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0);
       const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
@@ -472,10 +480,12 @@ function initApp(){
           const it=applByKey[e.key];
           if(it)w.units.push({...it,editable:true});
         }else{
-          w.units.push({width:e.width,tall:false,label:e.legend?"+":null,legend:e.legend,filler:!!e.legend,editable:true});
+          w.units.push({width:e.width,tall:false,label:e.legend?"+":null,legend:e.legend,filler:!!e.legend,editable:true,orderId:e.id,front:e.front||{kind:"door"}});
         }
       });
       if(endPiece)w.units.push(endPiece);
+      let cum=0;
+      w.units.forEach(u=>{u.x=cum;cum+=u.width});
     });
     return walls;
   }
@@ -504,6 +514,26 @@ function initApp(){
     if(u.isDishwasher)return{fill:"#c7cbd1",text:"#15171a"};
     if(u.isSink)return{fill:"#e7e7e7",text:"#15171a"};
     return{fill:fHex,text:txtOnFacade};
+  }
+  function drawCabinetFront(parts,x,y,w,h,front,stroke){
+    if(!front||w<20||h<20)return;
+    const m=3;
+    if(front.kind==="drawers"){
+      const n=Math.max(1,front.count||1);
+      const bandH=(h-m*2)/n;
+      for(let k=0;k<n;k++){
+        const by=y+m+k*bandH;
+        parts.push(`<rect x="${x+m}" y="${by}" width="${w-m*2}" height="${bandH-2}" fill="none" stroke="${stroke}" stroke-width="0.8" pointer-events="none"/>`);
+        parts.push(`<line x1="${x+w*0.35}" y1="${by+bandH*0.35}" x2="${x+w*0.65}" y2="${by+bandH*0.35}" stroke="${stroke}" stroke-width="1.3" pointer-events="none"/>`);
+      }
+    }else{
+      parts.push(`<rect x="${x+m}" y="${y+m}" width="${w-m*2}" height="${h-m*2}" fill="none" stroke="${stroke}" stroke-width="0.8" pointer-events="none"/>`);
+      parts.push(`<line x1="${x+w-8}" y1="${y+h*0.4}" x2="${x+w-8}" y2="${y+h*0.6}" stroke="${stroke}" stroke-width="1.6" pointer-events="none"/>`);
+    }
+  }
+  function frontLabel(front){
+    if(!front)return "";
+    return front.kind==="drawers"?` (${front.count} tiroir${front.count>1?"s":""})`:" (porte)";
   }
 
   /* --- sélection depuis le plan : cliquer un meuble le relie à sa ligne dans l'éditeur --- */
@@ -612,6 +642,7 @@ function initApp(){
           const baseY=floorY-baseTotalH;
           const{stroke,width}=wallIdx!=null?unitPickStroke("base",wallIdx,u,"#b9bec4"):{stroke:"#b9bec4",width:1.5};
           parts.push(`<rect x="${x}" y="${baseY}" width="${w}" height="${DIM.baseDoorH}" fill="${fill}" stroke="${stroke}" stroke-width="${width}"${attrs}/>`);
+          drawCabinetFront(parts,x,baseY,w,DIM.baseDoorH,u.front,text);
           addPlanLabel(parts,x,baseY,w,DIM.baseDoorH,u.label||(w>=30?`${w} cm`:""),text);
           parts.push(`<rect x="${x}" y="${floorY-DIM.plinth}" width="${w}" height="${DIM.plinth}" fill="#d8dadd" stroke="#b9bec4" stroke-width="1"/>`);
         }
@@ -636,17 +667,22 @@ function initApp(){
     svg.innerHTML=parts.join("");
   }
 
+  function credenceLines(walls){
+    if(selected.credence==="Aucune")return[];
+    return walls.map((w,i)=>`Crédence (${selected.credence}) — Mur ${i+1} : ${w.length} cm`);
+  }
   function computeCounts(walls,island){
     const counts={};
-    const add=(u,kind)=>{const key=u.legend||`Meuble ${kind} ${u.width} cm`;counts[key]=(counts[key]||0)+1};
+    const add=(u,kind)=>{const key=(u.legend||`Meuble ${kind} ${u.width} cm`)+frontLabel(u.front);counts[key]=(counts[key]||0)+1};
     walls.forEach(w=>{w.units.forEach(u=>add(u,"bas"));(w.upperUnits||[]).forEach(u=>add(u,"haut"))});
     if(island)island.units.forEach(u=>add(u,"bas"));
+    credenceLines(walls).forEach(key=>{counts[key]=(counts[key]||0)+1});
     return counts;
   }
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm) et des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), un meuble bas de 40 cm est systématiquement inséré entre un angle et tout frigo/four/plaque pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm) et des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), un meuble bas de 40 cm est systématiquement inséré entre un angle et tout frigo/four/plaque pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
@@ -673,6 +709,12 @@ function initApp(){
   }
 
   /* --- éditeur de modules : déplacer / échanger / supprimer chaque meuble --- */
+  function frontSelect(i,idx,front){
+    const val=front.kind==="drawers"?`d${front.count}`:"door";
+    const opts=[["door","Porte"],["d1","1 tiroir"],["d2","2 tiroirs"],["d3","3 tiroirs"],["d4","4 tiroirs"]]
+      .map(([v,l])=>`<option value="${v}"${val===v?" selected":""}>${l}</option>`).join("");
+    return `<select class="mod-front" data-wall="${i}" data-idx="${idx}" style="width:auto;height:26px;padding:0 4px;font-size:11px">${opts}</select>`;
+  }
   function modRow(kind,i,idx,u,len){
     const isAppl=u.key!=null;
     const label=u.legend||u.label||`${u.width} cm`;
@@ -681,6 +723,7 @@ function initApp(){
     const ctrls=isAppl
       ?`<span class="mod-fixed-w">${u.width} cm</span>`
       :`<input type="number" class="mod-width" data-kind="${kind}" data-wall="${i}" data-idx="${idx}" value="${u.width}" min="2" style="width:56px;height:26px;padding:0 4px;font-size:11px">
+        ${kind==="base"&&u.front?frontSelect(i,idx,u.front):""}
         <button class="mod-del" data-kind="${kind}" data-wall="${i}" data-idx="${idx}">✕</button>`;
     return `<div class="mod-row${sel?" selected":""}" data-kind="${kind}" data-wall="${i}"${idAttrs}>
       <button class="mod-move" data-dir="-1" data-kind="${kind}" data-wall="${i}" data-idx="${idx}"${idx===0?" disabled":""}>◀</button>
@@ -756,7 +799,7 @@ function initApp(){
     const add=e.target.closest(".mod-add");
     if(add){
       const i=Number(add.dataset.wall),kind=add.dataset.kind;
-      if(kind==="baseMod"){if(!wallOrder[i])wallOrder[i]=[];wallOrder[i].push({type:"filler",id:genId(),width:60})}
+      if(kind==="baseMod"){if(!wallOrder[i])wallOrder[i]=[];wallOrder[i].push({type:"filler",id:genId(),width:60,front:{kind:"door"}})}
       else if(kind==="upperMod"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:60})}
       else if(kind==="upperGap"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:30,isGap:true})}
       updatePlan();
@@ -778,6 +821,17 @@ function initApp(){
     if(chk){
       wallEnds[chk.dataset.key]=chk.checked;
       updatePlan();
+      return;
+    }
+    const fs=e.target.closest(".mod-front");
+    if(fs){
+      const i=Number(fs.dataset.wall),idx=Number(fs.dataset.idx);
+      const arr=wallOrder[i];
+      if(arr&&arr[idx]){
+        const v=fs.value;
+        arr[idx].front=v==="door"?{kind:"door"}:{kind:"drawers",count:Number(v.slice(1))};
+        updatePlan();
+      }
     }
   });
 
@@ -961,6 +1015,7 @@ function initApp(){
           else if(u.isSink)parts.push(iconSinkFront(x,baseY,w,DIM.baseDoorH));
           else if(u.isDishwasher)parts.push(iconDishwasher(x,baseY,w,DIM.baseDoorH));
           else if(u.isWine)parts.push(iconWine(x,baseY,w,DIM.baseDoorH,text));
+          else drawCabinetFront(parts,x,baseY,w,DIM.baseDoorH,u.front,text);
           parts.push(`<rect x="${x}" y="${floorY-DIM.plinth}" width="${w}" height="${DIM.plinth}" fill="#d8dadd" stroke="#8a8f96" stroke-width="1"/>`);
         }
         if(u.num!=null)numBadge(parts,x+11,floorY-6,u.num);
@@ -980,7 +1035,8 @@ function initApp(){
     });
     return `<svg viewBox="0 0 ${svgW} ${svgH}" width="${Math.max(svgW*1.5,500)}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}</svg>`;
   }
-  function buildNomenclatureTable(walls,island){
+  function buildNomenclatureTable(walls,island,upperOn,upperH){
+    const colH=DIM.plinth+DIM.baseDoorH+DIM.gapH+(upperOn?upperH:0);
     const rows=[];
     walls.forEach((w,i)=>{
       w.units.forEach(u=>rows.push({...u,loc:`Mur ${i+1}`,typeLbl:u.tall?"Colonne":"Bas"}));
@@ -990,10 +1046,13 @@ function initApp(){
     rows.sort((a,b)=>a.num-b.num);
     const trs=rows.map(u=>{
       const fallback=u.typeLbl==="Haut"?`Meuble haut ${u.width} cm`:u.typeLbl==="Colonne"?`Meuble colonne ${u.width} cm`:`Meuble bas ${u.width} cm`;
-      const desig=u.legend||u.label||fallback;
-      return `<tr><td>${u.num}</td><td>${desig}</td><td>${u.width} cm</td><td>${u.typeLbl}</td><td>${u.loc}</td></tr>`;
+      const desig=(u.legend||u.label||fallback)+frontLabel(u.front);
+      const h=u.typeLbl==="Haut"?upperH:u.typeLbl==="Colonne"?colH:DIM.baseH;
+      const d=u.typeLbl==="Haut"?DIM.upperDepth:DIM.baseDepth;
+      const loc=u.x!=null?`${u.loc} — à ${u.x} cm`:u.loc;
+      return `<tr><td>${u.num}</td><td>${desig}</td><td>${u.width} cm</td><td>${d} cm</td><td>${h} cm</td><td>${u.typeLbl}</td><td>${loc}</td></tr>`;
     }).join("");
-    return `<table class="nomen-table"><thead><tr><th>N°</th><th>Désignation</th><th>Largeur</th><th>Type</th><th>Emplacement</th></tr></thead><tbody>${trs}</tbody></table>`;
+    return `<table class="nomen-table"><thead><tr><th>N°</th><th>Désignation</th><th>Largeur</th><th>Profondeur</th><th>Hauteur</th><th>Type</th><th>Emplacement</th></tr></thead><tbody>${trs}</tbody></table>`;
   }
   function buildExport(){
     const island=buildIslandPlan();
@@ -1007,7 +1066,9 @@ function initApp(){
     const txtOnFacade=textColorFor(fHex);
     const topSvg=buildExportTopSvg(walls,island,fHex,txtOnFacade);
     const elevSvg=buildExportElevationSvg(walls,island,fHex,txtOnFacade,upperOn,upperH);
-    const table=buildNomenclatureTable(walls,island);
+    const table=buildNomenclatureTable(walls,island,upperOn,upperH);
+    const counts=computeCounts(walls,island);
+    const summaryRows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     $("#exportView").innerHTML=`
       <div class="export-toolbar no-print">
         <button id="printBtn">Imprimer / Exporter en PDF</button>
@@ -1024,6 +1085,8 @@ function initApp(){
         ${elevSvg}
         <h3>Nomenclature</h3>
         ${table}
+        <h3>Résumé — quantités par référence</h3>
+        <ul class="legend-list">${summaryRows}</ul>
       </div>`;
   }
   $("#exportBtn").addEventListener("click",()=>{
