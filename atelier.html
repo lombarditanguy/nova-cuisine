@@ -1,0 +1,325 @@
+<!--
+  Page interne, réservée à NOVA Cuisine. Non liée depuis le site public, exclue de
+  l'indexation (robots.txt + meta robots) et protégée par mot de passe.
+  Ne PAS lier cette page depuis index.html ni la lister dans sitemap.xml.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Atelier NOVA Cuisine — usage interne</title>
+<style>
+  :root{--ink:#15171a;--muted:#6d737b;--line:#e6e8ea;--blue:#285cff;--blue-dark:#1a44cc;--panel:#eef1f8;--shadow:0 10px 30px -10px rgba(21,23,26,.14)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#f5f6f8}
+  .hidden{display:none!important}
+  h1,h2,h3{line-height:1.2}
+  label{display:block;font-size:11px;color:#646a70;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin:13px 0 7px}
+  input,select{width:100%;height:44px;border:1px solid var(--line);border-radius:8px;padding:0 12px;font:inherit;background:#fff}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .choices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .choices.wide{grid-template-columns:repeat(2,1fr)}
+  .choice{border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 6px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;line-height:1.25}
+  .choice.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .choice .dot{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.18)}
+  .choice.active .dot{border-color:rgba(255,255,255,.5)}
+  .switch{display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:12px;border-radius:8px;font-size:13px;margin-bottom:8px}
+
+  /* --- password gate --- */
+  #gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .gate-box{width:min(360px,100%);background:#fff;border:1px solid var(--line);border-radius:14px;padding:32px;box-shadow:var(--shadow);text-align:center}
+  .gate-box h1{font-size:16px;margin:0 0 6px}
+  .gate-box p{font-size:13px;color:var(--muted);margin:0 0 18px}
+  .gate-box button{width:100%;border:0;border-radius:9px;padding:13px;background:var(--blue);color:#fff;font-weight:700;font-size:14px;cursor:pointer;margin-top:12px}
+  .gate-box button:hover{background:var(--blue-dark)}
+  .gate-err{color:#b42424;font-size:12.5px;margin-top:10px}
+
+  /* --- app shell --- */
+  header{background:var(--ink);color:#fff;padding:16px 5vw}
+  header .tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#9fb2ff}
+  header h1{font-size:16px;margin:2px 0 0}
+  main{max-width:1200px;margin:0 auto;padding:28px 5vw 60px;display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:24px}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  aside,.output{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  aside{padding:26px}
+  aside h2{font-size:13px;letter-spacing:.04em;margin:26px 0 12px;display:flex;align-items:center;gap:10px}
+  aside h2:first-of-type{margin-top:0}
+  aside h2 .n{width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .output{padding:0;overflow:hidden}
+  .planWrap{width:100%;padding:20px;box-sizing:border-box;max-height:760px;overflow-y:auto}
+  .planWrap svg{width:100%;height:auto;display:block}
+  .plan-legend{padding:22px 26px;border-top:1px solid var(--line);background:var(--panel)}
+  .plan-legend h3{font-size:15px;margin:0 0 4px}
+  .plan-legend .sub{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+  .legend-list{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;font-size:13px;color:#3c4148}
+  .legend-list li strong{color:var(--ink);margin-right:4px}
+  .note{font-size:12px;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-box">
+    <h1>Atelier NOVA Cuisine</h1>
+    <p>Outil interne — accès réservé.</p>
+    <input type="password" id="pwd" placeholder="Mot de passe" autocomplete="off">
+    <button id="unlock">Entrer</button>
+    <p class="gate-err hidden" id="gateErr">Mot de passe incorrect.</p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="tag">Usage interne</div>
+    <h1>Atelier — plan 2D &amp; liste de commande</h1>
+  </header>
+  <main>
+    <aside>
+      <h2><span class="n">1</span>Implantation</h2>
+      <label for="layout">Type d'implantation</label>
+      <select id="layout"><option value="linéaire">Linéaire</option><option value="en L">En L</option><option value="en U">En U</option></select>
+      <div class="row"><div><label for="wall1">Mur principal (cm)</label><input id="wall1" type="number" value="360" min="120"></div><div id="wall2box" class="hidden"><label for="wall2">Deuxième mur (cm)</label><input id="wall2" type="number" value="240" min="120"></div></div>
+      <div id="wall3box" class="hidden"><label for="wall3">Troisième mur (cm)</label><input id="wall3" type="number" value="200" min="120"></div>
+
+      <h2><span class="n">2</span>Îlot central</h2>
+      <div class="switch"><b>Îlot central</b><input id="island" type="checkbox"></div>
+      <div id="islandBox" class="hidden">
+        <div class="row"><div><label for="islandWidth">Largeur (cm)</label><input id="islandWidth" type="number" value="140" min="60"></div><div><label for="islandDepth">Profondeur (cm)</label><input id="islandDepth" type="number" value="90" min="50"></div></div>
+        <label for="islandFeature">Équipement intégré</label>
+        <select id="islandFeature"><option value="Aucun">Aucun</option><option value="Plaque de cuisson">Plaque de cuisson</option><option value="Évier">Évier</option><option value="Plaque et évier">Plaque et évier</option></select>
+      </div>
+
+      <h2><span class="n">3</span>Électroménager</h2>
+      <div class="switch"><b>Meubles hauts</b><input id="upper" type="checkbox" checked></div>
+      <label>Électroménager intégré</label><div class="choices wide" id="applianceChoices"></div>
+
+      <h2><span class="n">4</span>Finitions &amp; évier</h2>
+      <label>Façades</label><div class="choices" id="facadesChoices"></div>
+      <label>Type d'évier</label><div class="choices wide" id="sinkChoices"></div>
+    </aside>
+
+    <div class="output">
+      <div class="planWrap" id="planWrap"><svg id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="plan-legend" id="planLegend"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+
+/* --- password gate --- */
+const PWD_HASH="f925bdf600cc5e5510a97aa07495fac82fc386fe02875d2303bee38b24ea068a";
+async function sha256(str){
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function tryUnlock(){
+  const hash=await sha256($("#pwd").value);
+  if(hash===PWD_HASH){
+    sessionStorage.setItem("atelier_ok","1");
+    $("#gate").classList.add("hidden");
+    $("#app").classList.remove("hidden");
+    initApp();
+  }else{
+    $("#gateErr").classList.remove("hidden");
+  }
+}
+$("#unlock").onclick=tryUnlock;
+$("#pwd").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock()});
+if(sessionStorage.getItem("atelier_ok")==="1"){
+  $("#gate").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  initApp();
+}
+
+/* --- app (only runs once unlocked) --- */
+function initApp(){
+  const DATA={
+    appliances:["Four","Four à vapeur","Plaque induction","Hotte aspirante","Réfrigérateur","Lave-vaisselle","Micro-ondes","Cave à vin"],
+    facades:[{n:"Blanc mat",h:"#f4f2ee"},{n:"Chêne naturel",h:"#c9a06a"},{n:"Noir mat",h:"#1c1c1c"},{n:"Vert sauge",h:"#8a9a7c"},{n:"Bleu nuit",h:"#28344a"},{n:"Terracotta",h:"#c1694a"}],
+    sink:["Sous plan inox","Céramique blanche","Résine noire","Vasque à poser"]
+  };
+  let selected={appliances:new Set(["Four","Plaque induction","Réfrigérateur"]),facades:"Blanc mat",sink:"Sous plan inox"};
+
+  function dot(h){return h?`<span class="dot" style="background:${h}"></span>`:""}
+  function renderChoices(containerId,items,{multi=false,current}={}){
+    const el=$(containerId);
+    el.innerHTML=items.map(it=>{
+      const name=typeof it==="string"?it:it.n;
+      const h=typeof it==="string"?null:it.h;
+      const active=multi?current.has(name):current===name;
+      return `<button class="choice${active?" active":""}" data-value="${name}">${dot(h)}<span>${name}</span></button>`;
+    }).join("");
+  }
+  function bindChoice(containerId,key,{multi=false}={}){
+    $(containerId).addEventListener("click",e=>{
+      const btn=e.target.closest("button");
+      if(!btn)return;
+      const v=btn.dataset.value;
+      if(multi){
+        btn.classList.toggle("active");
+        btn.classList.contains("active")?selected[key].add(v):selected[key].delete(v);
+      }else{
+        $$(containerId+" button").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        selected[key]=v;
+      }
+      updatePlan();
+    });
+  }
+  renderChoices("#applianceChoices",DATA.appliances,{multi:true,current:selected.appliances});
+  renderChoices("#facadesChoices",DATA.facades,{current:selected.facades});
+  renderChoices("#sinkChoices",DATA.sink,{current:selected.sink});
+  bindChoice("#applianceChoices","appliances",{multi:true});
+  bindChoice("#facadesChoices","facades");
+  bindChoice("#sinkChoices","sink");
+
+  function layouts(){
+    const l=$("#layout").value;
+    $("#wall2box").classList.toggle("hidden",l==="linéaire");
+    $("#wall3box").classList.toggle("hidden",l!=="en U");
+    updatePlan();
+  }
+  $("#layout").addEventListener("change",layouts);
+  ["wall1","wall2","wall3","islandWidth"].forEach(id=>$("#"+id).addEventListener("input",updatePlan));
+  $("#island").addEventListener("change",()=>{$("#islandBox").classList.toggle("hidden",!$("#island").checked);updatePlan()});
+  $("#islandFeature").addEventListener("change",updatePlan);
+  $("#upper").addEventListener("change",updatePlan);
+
+  /* --- plan 2D (same logic as the client-facing tool used to have) --- */
+  function facadeHex(){return (DATA.facades.find(f=>f.n===selected.facades)||{}).h||"#f4f2ee"}
+  function lightenHex(hex,amt){
+    const h=hex.replace("#","");
+    const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
+    const mix=c=>Math.round(c+(255-c)*amt);
+    return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+  }
+  function textColorFor(hex){
+    const h=hex.replace("#","");
+    const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
+    return (0.299*r+0.587*g+0.114*b)/255>0.6?"#15171a":"#ffffff";
+  }
+  function buildApplianceUnits(skipHob,skipSink){
+    const units=[];
+    if(selected.appliances.has("Réfrigérateur"))units.push({width:60,tall:true,label:"Frigo",legend:"Frigo"});
+    const ovenParts=[];
+    if(selected.appliances.has("Four"))ovenParts.push("Four");
+    if(selected.appliances.has("Four à vapeur"))ovenParts.push("Four vapeur");
+    if(selected.appliances.has("Micro-ondes"))ovenParts.push("Micro-ondes");
+    if(ovenParts.length)units.push({width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + ")});
+    if(!skipSink)units.push({width:80,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
+    if(!skipHob&&selected.appliances.has("Plaque induction"))units.push({width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true});
+    if(selected.appliances.has("Lave-vaisselle"))units.push({width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
+    if(selected.appliances.has("Cave à vin"))units.push({width:60,tall:false,label:"Cave",legend:"Cave à vin"});
+    return units;
+  }
+  function fillStandard(units,remaining){
+    for(const m of [90,80,60,50,40,30,20])while(remaining>=m){units.push({width:m,tall:false,label:null});remaining-=m}
+    if(remaining>1)units.push({width:Math.round(remaining),tall:false,label:"+",legend:"Ajustement",filler:true});
+  }
+  function buildIslandPlan(){
+    if(!$("#island").checked)return null;
+    const width=Number($("#islandWidth").value)||0;
+    const feature=$("#islandFeature").value;
+    const units=[];
+    if(feature==="Plaque de cuisson"||feature==="Plaque et évier")units.push({width:60,tall:false,label:"Plaque",legend:"Plaque (îlot)",isHob:true});
+    if(feature==="Évier"||feature==="Plaque et évier")units.push({width:80,tall:false,label:"Évier",legend:`Évier îlot (${selected.sink})`,isSink:true});
+    fillStandard(units,Math.max(0,width-units.reduce((s,u)=>s+u.width,0)));
+    return {length:width,units,hasHob:feature==="Plaque de cuisson"||feature==="Plaque et évier",hasSink:feature==="Évier"||feature==="Plaque et évier"};
+  }
+  function buildWallsPlan(island){
+    const layout=$("#layout").value;
+    const lens=[Number($("#wall1").value)||0];
+    if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
+    if(layout==="en U")lens.push(Number($("#wall3").value)||0);
+    const walls=lens.map(len=>({length:len,units:[]}));
+    const cornerWidth=60;
+    const reserved=walls.map((w,i)=>{
+      let r=0;
+      if(walls.length>1){if(i>0)r+=cornerWidth/2;if(i<walls.length-1)r+=cornerWidth/2}
+      return r;
+    });
+    buildApplianceUnits(island&&island.hasHob,island&&island.hasSink).forEach(u=>{
+      let idx=walls.findIndex((w,i)=>{
+        const used=w.units.reduce((s,x)=>s+x.width,0);
+        return used+u.width<=w.length-reserved[i];
+      });
+      if(idx===-1)idx=walls.length-1;
+      walls[idx].units.push(u);
+    });
+    walls.forEach((w,i)=>{
+      const used=w.units.reduce((s,x)=>s+x.width,0);
+      fillStandard(w.units,Math.max(0,w.length-reserved[i]-used));
+    });
+    return walls;
+  }
+  function addPlanLabel(parts,x,y,w,h,text,color){
+    if(!text||w<38)return;
+    const size=Math.min(13,w/5.5);
+    parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="${size}" fill="${color}" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif">${text}</text>`);
+  }
+  function updatePlan(){
+    const island=buildIslandPlan();
+    const walls=buildWallsPlan(island);
+    const groups=walls.map((w,i)=>({label:`Mur ${i+1} — ${w.length} cm`,length:w.length,units:w.units}));
+    if(island)groups.push({label:`Îlot central — ${island.length} cm`,length:island.length,units:island.units,isIsland:true});
+
+    const stripH=170,baseH=85,upperH=50,gap=46,labelH=22,pad=16;
+    const maxLen=Math.max(...groups.map(g=>g.length),100);
+    const svgW=maxLen+pad*2;
+    const svgH=groups.length*(stripH+labelH+gap)+pad;
+    const upperOn=$("#upper").checked;
+    const fHex=facadeHex();
+    const upperHex=lightenHex(fHex,0.32);
+    const txtOnFacade=textColorFor(fHex);
+
+    let y=pad;
+    const parts=[];
+    const counts={};
+    groups.forEach(g=>{
+      parts.push(`<text x="${pad}" y="${y+2}" font-size="15" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">${g.label}</text>`);
+      const top=y+labelH;
+      let x=pad;
+      g.units.forEach(u=>{
+        const w=u.width;
+        if(u.tall){
+          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${stripH}" fill="#2a2c31" stroke="#fff" stroke-width="1.5"/>`);
+          addPlanLabel(parts,x,top,w,stripH,u.label,"#fff");
+        }else{
+          const baseTop=top+stripH-baseH;
+          let fill=fHex,tColor=txtOnFacade;
+          if(u.isHob){fill="#1c1c1c";tColor="#fff"}
+          else if(u.isDishwasher){fill="#c7cbd1";tColor="#15171a"}
+          else if(u.isSink){fill="#e7e7e7";tColor="#15171a"}
+          parts.push(`<rect x="${x}" y="${baseTop}" width="${w}" height="${baseH}" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`);
+          addPlanLabel(parts,x,baseTop,w,baseH,u.label,tColor);
+          if(upperOn&&!g.isIsland&&!u.isHob&&!u.isSink&&!u.isDishwasher){
+            parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${upperH}" fill="${upperHex}" stroke="#fff" stroke-width="1.5" opacity=".92"/>`);
+          }
+        }
+        const key=u.legend||`Meuble bas ${w} cm`;
+        counts[key]=(counts[key]||0)+1;
+        x+=w;
+      });
+      y+=stripH+labelH+gap;
+    });
+
+    const svg=$("#planSvg");
+    svg.setAttribute("viewBox",`0 0 ${svgW} ${svgH}`);
+    svg.innerHTML=parts.join("");
+    renderPlanLegend(counts,upperOn);
+  }
+  function renderPlanLegend(counts,upperOn){
+    const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
+    const total=Object.values(counts).reduce((a,b)=>a+b,0);
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?" (meubles hauts inclus au-dessus)":""}.</p>`;
+  }
+
+  layouts();
+}
+</script>
+</body>
+</html>

@@ -236,13 +236,6 @@
     .canvas img{max-width:100%;max-height:480px;display:none;object-fit:contain}
     .mediaWrap{position:relative;display:none;line-height:0}
     .mediaWrap img{display:block;max-width:100%;max-height:480px;object-fit:contain}
-    .planWrap{width:100%;padding:18px;box-sizing:border-box;max-height:640px;overflow-y:auto}
-    .planWrap svg{width:100%;height:auto;display:block}
-    .plan-legend{padding:22px 26px;border-top:1px solid var(--line);background:var(--panel)}
-    .plan-legend h3{font-size:15px;margin:0 0 4px}
-    .plan-legend .lead-sub{font-size:12.5px;color:var(--muted);margin:0 0 12px}
-    .legend-list{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;font-size:13px;color:#3c4148}
-    .legend-list li strong{color:var(--ink);margin-right:4px}
     .empty{text-align:center;color:var(--muted);max-width:330px;line-height:1.6}.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
     .loading{display:none;text-align:center;color:#555}
     .spinner{width:30px;height:30px;border:3px solid #d9e2ff;border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
@@ -462,8 +455,8 @@
       </aside>
       <section class="preview">
         <div class="previewTop"><h2>Aperçu dans votre pièce</h2><span class="status" id="status">Prêt</span></div>
-        <div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button><button class="tab" data-tab="plan">Plan 2D</button></div>
-        <p class="disclaimer">Aperçu généré par IA à visée illustrative — la composition exacte (nombre et dimensions des meubles) est celle du panneau <strong>Composition estimée</strong> et de l'onglet <strong>Plan 2D</strong>, calculés indépendamment de l'image.</p>
+        <div class="tabs"><button class="tab active" data-tab="before">Photo source</button><button class="tab" data-tab="after">Rendu généré</button></div>
+        <p class="disclaimer">Aperçu généré par IA à visée illustrative — la composition exacte (nombre et dimensions des meubles) est celle du panneau <strong>Composition estimée</strong>, calculée indépendamment de l'image.</p>
         <p class="hint hidden" id="wallPickHintBig">Implantation linéaire : cliquez sur le mur de la photo où vous voulez la cuisine.</p>
 
         <div class="preview-card">
@@ -474,8 +467,6 @@
             <div class="empty" id="empty"><b>Votre projet, dans votre pièce.</b>Importez une photo, configurez votre cuisine puis lancez le rendu.</div>
             <div class="loading" id="loading"><div class="spinner"></div><b>Création de votre cuisine</b><br><small id="loadingDetail">La pièce est analysée et la nouvelle implantation est générée…</small></div>
           </div>
-          <div class="planWrap hidden" id="planWrap"><svg id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
-          <div class="plan-legend hidden" id="planLegend"></div>
 
           <div class="lead-box hidden" id="leadBox">
             <h3>Ce rendu vous plaît ? Demandez votre devis ↓</h3>
@@ -745,7 +736,6 @@ function updateEstimate(){
   }
   const summary=`Façades <strong>${selected.facades}</strong> · Plan de travail <strong>${selected.worktop}</strong> · Poignées <strong>${selected.handleType}</strong> ${selected.handleColor}`;
   $("#estimate").innerHTML=`<div class="summary">${summary}</div><strong>Caissons mélaminé 19 mm</strong><br>`+lines.join("<br><br>");
-  updatePlan();
 }
 $("#layout").addEventListener("change",layouts);
 ["wall1","wall2","wall3","islandWidth"].forEach(id=>$("#"+id).addEventListener("input",updateEstimate));
@@ -754,143 +744,10 @@ $("#islandFeature").addEventListener("change",updateEstimate);
 $("#upper").addEventListener("change",updateEstimate);
 layouts();
 
-/* --- Plan 2D --- */
-function facadeHex(){return (DATA.facades.find(f=>f.n===selected.facades)||{}).h||"#f4f2ee"}
-function lightenHex(hex,amt){
-  const h=hex.replace("#","");
-  const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
-  const mix=c=>Math.round(c+(255-c)*amt);
-  return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
-}
-function textColorFor(hex){
-  const h=hex.replace("#","");
-  const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
-  return (0.299*r+0.587*g+0.114*b)/255>0.6?"#15171a":"#ffffff";
-}
-function buildApplianceUnits(skipHob,skipSink){
-  const units=[];
-  if(selected.appliances.has("Réfrigérateur"))units.push({width:60,tall:true,label:"Frigo",legend:"Frigo"});
-  const ovenParts=[];
-  if(selected.appliances.has("Four"))ovenParts.push("Four");
-  if(selected.appliances.has("Four à vapeur"))ovenParts.push("Four vapeur");
-  if(selected.appliances.has("Micro-ondes"))ovenParts.push("Micro-ondes");
-  if(ovenParts.length)units.push({width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + ")});
-  if(!skipSink)units.push({width:80,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
-  if(!skipHob&&selected.appliances.has("Plaque induction"))units.push({width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true});
-  if(selected.appliances.has("Lave-vaisselle"))units.push({width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
-  if(selected.appliances.has("Cave à vin"))units.push({width:60,tall:false,label:"Cave",legend:"Cave à vin"});
-  return units;
-}
-function fillStandard(units,remaining){
-  for(const m of [90,80,60,50,40,30,20])while(remaining>=m){units.push({width:m,tall:false,label:null});remaining-=m}
-  if(remaining>1)units.push({width:Math.round(remaining),tall:false,label:"+",legend:"Ajustement",filler:true});
-}
-function buildIslandPlan(){
-  if(!$("#island").checked)return null;
-  const width=Number($("#islandWidth").value)||0;
-  const feature=$("#islandFeature").value;
-  const units=[];
-  if(feature==="Plaque de cuisson"||feature==="Plaque et évier")units.push({width:60,tall:false,label:"Plaque",legend:"Plaque (îlot)",isHob:true});
-  if(feature==="Évier"||feature==="Plaque et évier")units.push({width:80,tall:false,label:"Évier",legend:`Évier îlot (${selected.sink})`,isSink:true});
-  fillStandard(units,Math.max(0,width-units.reduce((s,u)=>s+u.width,0)));
-  return {length:width,units,hasHob:feature==="Plaque de cuisson"||feature==="Plaque et évier",hasSink:feature==="Évier"||feature==="Plaque et évier"};
-}
-function buildWallsPlan(island){
-  const layout=$("#layout").value;
-  const lens=[Number($("#wall1").value)||0];
-  if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
-  if(layout==="en U")lens.push(Number($("#wall3").value)||0);
-  const walls=lens.map(len=>({length:len,units:[]}));
-  const cornerWidth=60;
-  const reserved=walls.map((w,i)=>{
-    let r=0;
-    if(walls.length>1){if(i>0)r+=cornerWidth/2;if(i<walls.length-1)r+=cornerWidth/2}
-    return r;
-  });
-  buildApplianceUnits(island&&island.hasHob,island&&island.hasSink).forEach(u=>{
-    let idx=walls.findIndex((w,i)=>{
-      const used=w.units.reduce((s,x)=>s+x.width,0);
-      return used+u.width<=w.length-reserved[i];
-    });
-    if(idx===-1)idx=walls.length-1;
-    walls[idx].units.push(u);
-  });
-  walls.forEach((w,i)=>{
-    const used=w.units.reduce((s,x)=>s+x.width,0);
-    fillStandard(w.units,Math.max(0,w.length-reserved[i]-used));
-  });
-  return walls;
-}
-function addPlanLabel(parts,x,y,w,h,text,color){
-  if(!text||w<38)return;
-  const size=Math.min(13,w/5.5);
-  parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="${size}" fill="${color}" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif">${text}</text>`);
-}
-function updatePlan(){
-  const island=buildIslandPlan();
-  const walls=buildWallsPlan(island);
-  const groups=walls.map((w,i)=>({label:`Mur ${i+1} — ${w.length} cm`,length:w.length,units:w.units}));
-  if(island)groups.push({label:`Îlot central — ${island.length} cm`,length:island.length,units:island.units,isIsland:true});
-
-  const stripH=170,baseH=85,upperH=50,gap=46,labelH=22,pad=16;
-  const maxLen=Math.max(...groups.map(g=>g.length),100);
-  const svgW=maxLen+pad*2;
-  const svgH=groups.length*(stripH+labelH+gap)+pad;
-  const upperOn=$("#upper").checked;
-  const fHex=facadeHex();
-  const upperHex=lightenHex(fHex,0.32);
-  const txtOnFacade=textColorFor(fHex);
-
-  let y=pad;
-  const parts=[];
-  const counts={};
-  groups.forEach(g=>{
-    parts.push(`<text x="${pad}" y="${y+2}" font-size="15" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">${g.label}</text>`);
-    const top=y+labelH;
-    let x=pad;
-    g.units.forEach(u=>{
-      const w=u.width;
-      if(u.tall){
-        const fill="#2a2c31";
-        parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${stripH}" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`);
-        addPlanLabel(parts,x,top,w,stripH,u.label,"#fff");
-      }else{
-        const baseTop=top+stripH-baseH;
-        let fill=fHex,tColor=txtOnFacade;
-        if(u.isHob){fill="#1c1c1c";tColor="#fff"}
-        else if(u.isDishwasher){fill="#c7cbd1";tColor="#15171a"}
-        else if(u.isSink){fill="#e7e7e7";tColor="#15171a"}
-        parts.push(`<rect x="${x}" y="${baseTop}" width="${w}" height="${baseH}" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`);
-        addPlanLabel(parts,x,baseTop,w,baseH,u.label,tColor);
-        if(upperOn&&!g.isIsland&&!u.isHob&&!u.isSink&&!u.isDishwasher){
-          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${upperH}" fill="${upperHex}" stroke="#fff" stroke-width="1.5" opacity=".92"/>`);
-        }
-      }
-      const key=u.legend||`Meuble bas ${w} cm`;
-      counts[key]=(counts[key]||0)+1;
-      x+=w;
-    });
-    y+=stripH+labelH+gap;
-  });
-
-  const svg=$("#planSvg");
-  svg.setAttribute("viewBox",`0 0 ${svgW} ${svgH}`);
-  svg.innerHTML=parts.join("");
-  renderPlanLegend(counts,upperOn);
-}
-function renderPlanLegend(counts,upperOn){
-  const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
-  const total=Object.values(counts).reduce((a,b)=>a+b,0);
-  $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="lead-sub">Calculé directement à partir de votre configuration, indépendamment du rendu IA.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?" (meubles hauts inclus au-dessus)":""} · placement le long des murs indicatif, confirmé avec vous avant commande.</p>`;
-}
-
 function show(which){
   $$(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===which));
-  $(".canvas").style.display=which==="plan"?"none":"grid";
   $("#beforeWrap").style.display=which==="before"&&photoData?"inline-block":"none";
   $("#after").style.display=which==="after"&&$("#after").src?"block":"none";
-  $("#planWrap").classList.toggle("hidden",which!=="plan");
-  $("#planLegend").classList.toggle("hidden",which!=="plan");
   $("#empty").style.display=(which==="before"&&!photoData)||(which==="after"&&!$("#after").src)?"block":"none";
   $("#afterDisclaimer").classList.toggle("hidden",!(which==="after"&&$("#after").src));
 }
