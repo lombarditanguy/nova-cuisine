@@ -233,14 +233,14 @@ function initApp(){
   let assignments={};
   function activeItems(island){
     const items=[];
-    if(selected.appliances.has("Réfrigérateur"))items.push({key:"frigo",width:60,tall:true,label:"Frigo",legend:"Frigo"});
+    if(selected.appliances.has("Réfrigérateur"))items.push({key:"frigo",width:60,tall:true,label:"Frigo",legend:"Frigo",needsClearance:true});
     const ovenParts=[];
     if(selected.appliances.has("Four"))ovenParts.push("Four");
     if(selected.appliances.has("Four à vapeur"))ovenParts.push("Four vapeur");
     if(selected.appliances.has("Micro-ondes"))ovenParts.push("Micro-ondes");
-    if(ovenParts.length)items.push({key:"four",width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + ")});
+    if(ovenParts.length)items.push({key:"four",width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + "),needsClearance:true});
     if(!(island&&island.hasSink))items.push({key:"evier",width:80,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
-    if(selected.appliances.has("Plaque induction")&&!(island&&island.hasHob))items.push({key:"plaque",width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true});
+    if(selected.appliances.has("Plaque induction")&&!(island&&island.hasHob))items.push({key:"plaque",width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true,needsClearance:true});
     if(selected.appliances.has("Lave-vaisselle"))items.push({key:"lv",width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
     if(selected.appliances.has("Cave à vin"))items.push({key:"cave",width:60,tall:false,label:"Cave",legend:"Cave à vin"});
     return items;
@@ -278,13 +278,21 @@ function initApp(){
     const lens=[Number($("#wall1").value)||0];
     if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
     if(layout==="en U")lens.push(Number($("#wall3").value)||0);
-    const walls=lens.map((len,i)=>({length:len,units:[]}));
-    walls.forEach((w,i)=>{if(i>0)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true})});
+    // cornerStart: an internal corner sits at the beginning of this wall's run (needs a filler + clearance
+    // buffer before any appliance that needs door/drawer access — no fridge/hob/oven touching an angle).
+    const walls=lens.map((len,i)=>({length:len,units:[],cornerStart:i===0?layout!=="linéaire":true}));
+    walls.forEach(w=>{if(w.cornerStart)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true})});
+
+    const byWall=walls.map(()=>[]);
     items.forEach(it=>{
       const idx=Math.min(assignments[it.key]||0,walls.length-1);
-      walls[idx].units.push(it);
+      byWall[idx].push(it);
     });
-    walls.forEach(w=>{
+    walls.forEach((w,i)=>{
+      if(w.cornerStart&&byWall[i].some(it=>it.needsClearance)){
+        w.units.push({width:40,tall:false,label:null,legend:"Meuble tampon (dégagement d'angle)"});
+      }
+      byWall[i].forEach(it=>w.units.push(it));
       const used=w.units.reduce((s,u)=>s+u.width,0);
       fillStandard(w.units,Math.max(0,w.length-used));
     });
@@ -428,7 +436,7 @@ function initApp(){
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur des joues de finition sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm), largeur du meuble tampon de dégagement d'angle (40 cm) devant tout frigo/four/plaque, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur des joues de finition sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function updatePlan(){
