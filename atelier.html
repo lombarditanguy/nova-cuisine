@@ -459,12 +459,13 @@ function initApp(){
     if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
     if(layout==="en U")lens.push(Number($("#wall3").value)||0);
     // Every internal corner needs a 50mm-wide fileur d'angle: a thin real strip, physically
-    // installed on ONE of the two walls (needsCornerFiller, i>0) and counted once there. Both
-    // walls' first cabinet still need to clear the full DEPTH of the perpendicular wall's
-    // cabinets (their façade sticks out baseDepth cm into the room) plus the fileur itself plus
-    // their own matching clearance: baseDepth + fileur + fileur = cornerVoidWidth. On the wall
-    // without the real piece that's all void; on the wall with the real piece it's the 5cm
-    // fileur plus a matching void for the rest, so both walls end up offset by the same total.
+    // installed on ONE of the two walls (needsCornerFiller, i>0) and counted once there — its
+    // cabinets start right after it, only cleared by the fileur itself (plus fine door/handle
+    // clearance, not modeled here). The OTHER wall (hasCornerAtStart, i===0) has no real piece
+    // at its corner, so nothing stops its first cabinet's façade from ramming straight into the
+    // side of the perpendicular wall's cabinets — it has to clear their full DEPTH (baseDepth cm
+    // sticking into the room) plus the fileur plus its own matching clearance, and since there's
+    // no cabinet to carry that clearance, the whole span sits empty (void) on this wall only.
     const cornerVoidWidth=DIM.baseDepth+DIM.cornerFiller*2;
     const walls=lens.map((len,i)=>({length:len,units:[],hasCornerAtStart:i===0?layout!=="linéaire":true,needsCornerFiller:i>0}));
 
@@ -477,10 +478,8 @@ function initApp(){
     walls.forEach((w,i)=>{
       w.units=[];
       const fe=freeEnds(i,layout);
-      if(w.needsCornerFiller){
-        w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
-        w.units.push({width:cornerVoidWidth-DIM.cornerFiller,tall:false,isGap:true});
-      }else if(w.hasCornerAtStart)w.units.push({width:cornerVoidWidth,tall:false,isGap:true});
+      if(w.needsCornerFiller)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
+      else if(w.hasCornerAtStart)w.units.push({width:cornerVoidWidth,tall:false,isGap:true});
       if(fe.start)w.units.push(endPieceFor(i,"start"));
       const endPiece=fe.end?endPieceFor(i,"end"):null;
       // wall0's far end is also an internal corner (into wall3) in a U-shape only — wall3 already
@@ -719,7 +718,7 @@ function initApp(){
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Chaque angle interne reçoit un fileur d'angle réel de ${DIM.cornerFiller} cm de large, posé sur un seul des deux murs. Sur les deux murs, aucun meuble n'est posé sur les premiers ${DIM.baseDepth+DIM.cornerFiller*2} cm depuis l'angle (profondeur du meuble perpendiculaire ${DIM.baseDepth} cm + fileur ${DIM.cornerFiller} cm + dégagement propre ${DIM.cornerFiller} cm) — sur le mur sans fileur réel c'est du vide complet, sur le mur avec le fileur réel c'est le fileur (${DIM.cornerFiller} cm) suivi d'un vide complémentaire — pour que les portes des deux lignes s'ouvrent entièrement. Hypothèses encore à confirmer : largeur des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Chaque angle interne reçoit un fileur d'angle réel de ${DIM.cornerFiller} cm de large sur un des deux murs (ses meubles démarrent juste après). Sur l'autre mur, qui n'a pas de fileur réel, aucun meuble n'est posé sur ${DIM.baseDepth+DIM.cornerFiller*2} cm (profondeur du meuble perpendiculaire ${DIM.baseDepth} cm + fileur ${DIM.cornerFiller} cm + dégagement propre ${DIM.cornerFiller} cm) pour que les portes des deux lignes s'ouvrent entièrement. Hypothèses encore à confirmer : largeur des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
