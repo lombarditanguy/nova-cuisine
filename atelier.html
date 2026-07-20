@@ -286,7 +286,7 @@ function initApp(){
       g.units.forEach(u=>{
         const w=u.width;
         if(u.tall){
-          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${stripH}" fill="#2a2c31" stroke="#fff" stroke-width="1.5"/>`);
+          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${stripH}" fill="#2a2c31" stroke="#b9bec4" stroke-width="1.5"/>`);
           addPlanLabel(parts,x,top,w,stripH,u.label,"#fff");
         }else{
           const baseTop=top+stripH-baseH;
@@ -294,10 +294,10 @@ function initApp(){
           if(u.isHob){fill="#1c1c1c";tColor="#fff"}
           else if(u.isDishwasher){fill="#c7cbd1";tColor="#15171a"}
           else if(u.isSink){fill="#e7e7e7";tColor="#15171a"}
-          parts.push(`<rect x="${x}" y="${baseTop}" width="${w}" height="${baseH}" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`);
-          addPlanLabel(parts,x,baseTop,w,baseH,u.label,tColor);
+          parts.push(`<rect x="${x}" y="${baseTop}" width="${w}" height="${baseH}" fill="${fill}" stroke="#b9bec4" stroke-width="1.5"/>`);
+          addPlanLabel(parts,x,baseTop,w,baseH,u.label||`${w} cm`,tColor);
           if(upperOn&&!g.isIsland&&!u.isHob&&!u.isSink&&!u.isDishwasher){
-            parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${upperH}" fill="${upperHex}" stroke="#fff" stroke-width="1.5" opacity=".92"/>`);
+            parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${upperH}" fill="${upperHex}" stroke="#b9bec4" stroke-width="1.5" opacity=".92"/>`);
           }
         }
         const key=u.legend||`Meuble bas ${w} cm`;
