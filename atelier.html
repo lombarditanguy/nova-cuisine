@@ -69,7 +69,7 @@
   .mod-add{border:1px dashed var(--line);background:#fff;border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;color:#3c4148}
   .mod-row.selected{outline:2px solid var(--blue);background:#e2e9ff}
   .mod-row.flash{background:#c9d6ff!important}
-  .planWrap svg [data-kind]{cursor:pointer}
+  .planWrap svg [data-kind]{cursor:grab}
   .plan-legend{padding:22px 26px;border-top:1px solid var(--line);background:var(--panel)}
   .plan-legend h3{font-size:15px;margin:0 0 4px}
   .plan-legend .sub{font-size:12.5px;color:var(--muted);margin:0 0 12px}
@@ -923,6 +923,47 @@ function initApp(){
     renderViews(computeState());
   });
   window.addEventListener("pointerup",()=>{islandDrag=null});
+
+  /* --- glisser un meuble sur un autre pour l'y déplacer (échange sa place), même logique que ◀▶ --- */
+  function findOrderIndex(arr,key,orderId){
+    if(!arr)return -1;
+    if(key!=null)return arr.findIndex(e=>e.type==="appliance"&&e.key===key);
+    return arr.findIndex(e=>e.id===orderId);
+  }
+  let cabinetDrag=null;
+  function bindCabinetDrag(svgSel){
+    $(svgSel).addEventListener("pointerdown",e=>{
+      const t=e.target.closest("[data-kind]");
+      if(!t||t.closest('[data-draggable="island"]'))return;
+      cabinetDrag={
+        kind:t.dataset.kind,wall:Number(t.dataset.wall),
+        key:t.dataset.applKey||null,orderId:t.dataset.orderId||null,
+        moved:false,startX:e.clientX,startY:e.clientY
+      };
+    });
+  }
+  bindCabinetDrag("#topSvg");
+  bindCabinetDrag("#planSvg");
+  window.addEventListener("pointermove",e=>{
+    if(!cabinetDrag||cabinetDrag.moved)return;
+    if(Math.hypot(e.clientX-cabinetDrag.startX,e.clientY-cabinetDrag.startY)>6)cabinetDrag.moved=true;
+  });
+  window.addEventListener("pointerup",e=>{
+    if(!cabinetDrag)return;
+    const drag=cabinetDrag;cabinetDrag=null;
+    if(!drag.moved)return; // no movement — let the normal "click" event handle selection instead
+    const dropEl=document.elementFromPoint(e.clientX,e.clientY);
+    const t2=dropEl&&dropEl.closest?dropEl.closest("[data-kind]"):null;
+    if(!t2)return;
+    if(t2.dataset.kind!==drag.kind||Number(t2.dataset.wall)!==drag.wall)return; // same wall & row only
+    const arr=drag.kind==="upper"?upperOrder[drag.wall]:wallOrder[drag.wall];
+    const fromIdx=findOrderIndex(arr,drag.key,drag.orderId);
+    const toIdx=findOrderIndex(arr,t2.dataset.applKey||null,t2.dataset.orderId||null);
+    if(fromIdx<0||toIdx<0||fromIdx===toIdx)return;
+    const[item]=arr.splice(fromIdx,1);
+    arr.splice(toIdx,0,item);
+    updatePlan();
+  });
 
   /* --- extraction : plan pro numéroté (repères, cotes cumulées, icônes) --- */
   function assignNumbers(walls,island){
