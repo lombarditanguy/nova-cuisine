@@ -290,7 +290,7 @@ function initApp(){
     });
     walls.forEach((w,i)=>{
       if(w.cornerStart&&byWall[i].some(it=>it.needsClearance)){
-        w.units.push({width:40,tall:false,label:null,legend:"Meuble tampon (dégagement d'angle)"});
+        w.units.push({width:40,tall:false,label:null});
       }
       byWall[i].forEach(it=>w.units.push(it));
       const used=w.units.reduce((s,u)=>s+u.width,0);
@@ -436,7 +436,7 @@ function initApp(){
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm), largeur du meuble tampon de dégagement d'angle (40 cm) devant tout frigo/four/plaque, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur des joues de finition sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm), un meuble bas de 40 cm est systématiquement inséré entre un angle et tout frigo/four/plaque pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur des joues de finition sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function updatePlan(){
