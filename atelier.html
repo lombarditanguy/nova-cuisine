@@ -48,14 +48,19 @@
   aside h2:first-of-type{margin-top:0}
   aside h2 .n{width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
   .output{padding:0;overflow:hidden}
-  .planWrap{width:100%;padding:20px;box-sizing:border-box;max-height:760px;overflow-y:auto}
-  .planWrap svg{width:100%;height:auto;display:block}
+  .viewBlock{padding:20px;box-sizing:border-box;border-bottom:1px solid var(--line)}
+  .viewBlock h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+  .planWrap{width:100%;max-height:640px;overflow-y:auto;overflow-x:auto}
+  .planWrap svg{height:auto;display:block}
   .plan-legend{padding:22px 26px;border-top:1px solid var(--line);background:var(--panel)}
   .plan-legend h3{font-size:15px;margin:0 0 4px}
   .plan-legend .sub{font-size:12.5px;color:var(--muted);margin:0 0 12px}
   .legend-list{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 18px;font-size:13px;color:#3c4148}
   .legend-list li strong{color:var(--ink);margin-right:4px}
   .note{font-size:12px;color:var(--muted);margin:0}
+  .place-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel);padding:9px 12px;border-radius:8px;margin-bottom:6px;font-size:12.5px}
+  .place-row select{width:auto;height:32px;padding:0 8px;font-size:12px}
+  .assum{font-size:11px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;margin:10px 0 0;line-height:1.5}
 </style>
 </head>
 <body>
@@ -93,15 +98,27 @@
 
       <h2><span class="n">3</span>Électroménager</h2>
       <div class="switch"><b>Meubles hauts</b><input id="upper" type="checkbox" checked></div>
+      <div id="upperHeightBox"><label for="upperHeight">Hauteur meubles hauts (cm)</label><input id="upperHeight" type="number" value="70" min="30" max="120"></div>
       <label>Électroménager intégré</label><div class="choices wide" id="applianceChoices"></div>
 
       <h2><span class="n">4</span>Finitions &amp; évier</h2>
       <label>Façades</label><div class="choices" id="facadesChoices"></div>
       <label>Type d'évier</label><div class="choices wide" id="sinkChoices"></div>
+
+      <h2><span class="n">5</span>Disposition</h2>
+      <p class="note" style="text-align:left;margin:0 0 10px">Choisissez le mur de chaque élément.</p>
+      <div id="placementBox"></div>
     </aside>
 
     <div class="output">
-      <div class="planWrap" id="planWrap"><svg id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="viewBlock">
+        <h3>Vue de dessus</h3>
+        <div class="planWrap" id="topWrap"><svg id="topSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
+      <div class="viewBlock" style="border-bottom:0">
+        <h3>Vue de face (élévation, par mur)</h3>
+        <div class="planWrap" id="planWrap"><svg id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
       <div class="plan-legend" id="planLegend"></div>
     </div>
   </main>
@@ -184,12 +201,21 @@ function initApp(){
     updatePlan();
   }
   $("#layout").addEventListener("change",layouts);
-  ["wall1","wall2","wall3","islandWidth"].forEach(id=>$("#"+id).addEventListener("input",updatePlan));
+  ["wall1","wall2","wall3","islandWidth","islandDepth","upperHeight"].forEach(id=>$("#"+id).addEventListener("input",updatePlan));
   $("#island").addEventListener("change",()=>{$("#islandBox").classList.toggle("hidden",!$("#island").checked);updatePlan()});
   $("#islandFeature").addEventListener("change",updatePlan);
-  $("#upper").addEventListener("change",updatePlan);
+  $("#upper").addEventListener("change",()=>{$("#upperHeightBox").classList.toggle("hidden",!$("#upper").checked);updatePlan()});
 
-  /* --- plan 2D (same logic as the client-facing tool used to have) --- */
+  /* --- dimensions réelles (cm), d'après les infos atelier --- */
+  const DIM={
+    plinth:10,      // pieds/plinthe
+    baseDoorH:80,   // hauteur portes meubles bas (900-100 plinthe)
+    worktopY:90,    // sol -> dessus plan de travail
+    gapH:70,        // vide plan de travail -> bas meubles hauts
+    baseDepth:50,   // profondeur meuble bas (plan de travail 600, débord 50, mur 50)
+    cornerFiller:4  // fileur d'angle — largeur à confirmer avec vous, valeur d'attente
+  };
+
   function facadeHex(){return (DATA.facades.find(f=>f.n===selected.facades)||{}).h||"#f4f2ee"}
   function lightenHex(hex,amt){
     const h=hex.replace("#","");
@@ -202,19 +228,35 @@ function initApp(){
     const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
     return (0.299*r+0.587*g+0.114*b)/255>0.6?"#15171a":"#ffffff";
   }
-  function buildApplianceUnits(skipHob,skipSink){
-    const units=[];
-    if(selected.appliances.has("Réfrigérateur"))units.push({width:60,tall:true,label:"Frigo",legend:"Frigo"});
+  function wallCount(){const l=$("#layout").value;return l==="linéaire"?1:l==="en L"?2:3}
+
+  let assignments={};
+  function activeItems(island){
+    const items=[];
+    if(selected.appliances.has("Réfrigérateur"))items.push({key:"frigo",width:60,tall:true,label:"Frigo",legend:"Frigo"});
     const ovenParts=[];
     if(selected.appliances.has("Four"))ovenParts.push("Four");
     if(selected.appliances.has("Four à vapeur"))ovenParts.push("Four vapeur");
     if(selected.appliances.has("Micro-ondes"))ovenParts.push("Micro-ondes");
-    if(ovenParts.length)units.push({width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + ")});
-    if(!skipSink)units.push({width:80,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
-    if(!skipHob&&selected.appliances.has("Plaque induction"))units.push({width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true});
-    if(selected.appliances.has("Lave-vaisselle"))units.push({width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
-    if(selected.appliances.has("Cave à vin"))units.push({width:60,tall:false,label:"Cave",legend:"Cave à vin"});
-    return units;
+    if(ovenParts.length)items.push({key:"four",width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + ")});
+    if(!(island&&island.hasSink))items.push({key:"evier",width:80,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
+    if(selected.appliances.has("Plaque induction")&&!(island&&island.hasHob))items.push({key:"plaque",width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true});
+    if(selected.appliances.has("Lave-vaisselle"))items.push({key:"lv",width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
+    if(selected.appliances.has("Cave à vin"))items.push({key:"cave",width:60,tall:false,label:"Cave",legend:"Cave à vin"});
+    return items;
+  }
+  function renderPlacementUI(items){
+    const n=wallCount();
+    if(!items.length){$("#placementBox").innerHTML=`<p class="note">Aucun élément à placer sur un mur.</p>`;return}
+    $("#placementBox").innerHTML=items.map(it=>{
+      if(assignments[it.key]==null||assignments[it.key]>=n)assignments[it.key]=0;
+      const opts=Array.from({length:n},(_,i)=>`<option value="${i}"${assignments[it.key]===i?" selected":""}>Mur ${i+1}</option>`).join("");
+      return `<div class="place-row"><span>${it.label}</span><select data-key="${it.key}" class="placeSel">${opts}</select></div>`;
+    }).join("");
+    $$(".placeSel").forEach(sel=>sel.addEventListener("change",e=>{
+      assignments[e.target.dataset.key]=Number(e.target.value);
+      updatePlan();
+    }));
   }
   function fillStandard(units,remaining){
     for(const m of [90,80,60,50,40,30,20])while(remaining>=m){units.push({width:m,tall:false,label:null});remaining-=m}
@@ -223,101 +265,188 @@ function initApp(){
   function buildIslandPlan(){
     if(!$("#island").checked)return null;
     const width=Number($("#islandWidth").value)||0;
+    const depth=Number($("#islandDepth").value)||90;
     const feature=$("#islandFeature").value;
     const units=[];
     if(feature==="Plaque de cuisson"||feature==="Plaque et évier")units.push({width:60,tall:false,label:"Plaque",legend:"Plaque (îlot)",isHob:true});
     if(feature==="Évier"||feature==="Plaque et évier")units.push({width:80,tall:false,label:"Évier",legend:`Évier îlot (${selected.sink})`,isSink:true});
     fillStandard(units,Math.max(0,width-units.reduce((s,u)=>s+u.width,0)));
-    return {length:width,units,hasHob:feature==="Plaque de cuisson"||feature==="Plaque et évier",hasSink:feature==="Évier"||feature==="Plaque et évier"};
+    return {length:width,depth,units,hasHob:feature==="Plaque de cuisson"||feature==="Plaque et évier",hasSink:feature==="Évier"||feature==="Plaque et évier"};
   }
-  function buildWallsPlan(island){
+  function buildWallsPlan(island,items){
     const layout=$("#layout").value;
     const lens=[Number($("#wall1").value)||0];
     if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
     if(layout==="en U")lens.push(Number($("#wall3").value)||0);
-    const walls=lens.map(len=>({length:len,units:[]}));
-    const cornerWidth=60;
-    const reserved=walls.map((w,i)=>{
-      let r=0;
-      if(walls.length>1){if(i>0)r+=cornerWidth/2;if(i<walls.length-1)r+=cornerWidth/2}
-      return r;
+    const walls=lens.map((len,i)=>({length:len,units:[]}));
+    walls.forEach((w,i)=>{if(i>0)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true})});
+    items.forEach(it=>{
+      const idx=Math.min(assignments[it.key]||0,walls.length-1);
+      walls[idx].units.push(it);
     });
-    buildApplianceUnits(island&&island.hasHob,island&&island.hasSink).forEach(u=>{
-      let idx=walls.findIndex((w,i)=>{
-        const used=w.units.reduce((s,x)=>s+x.width,0);
-        return used+u.width<=w.length-reserved[i];
-      });
-      if(idx===-1)idx=walls.length-1;
-      walls[idx].units.push(u);
-    });
-    walls.forEach((w,i)=>{
-      const used=w.units.reduce((s,x)=>s+x.width,0);
-      fillStandard(w.units,Math.max(0,w.length-reserved[i]-used));
+    walls.forEach(w=>{
+      const used=w.units.reduce((s,u)=>s+u.width,0);
+      fillStandard(w.units,Math.max(0,w.length-used));
     });
     return walls;
   }
-  function addPlanLabel(parts,x,y,w,h,text,color){
-    if(!text||w<38)return;
-    const size=Math.min(13,w/5.5);
-    parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="${size}" fill="${color}" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif">${text}</text>`);
+  function addPlanLabel(parts,x,y,w,h,text,color,size){
+    if(!text||w<34)return;
+    const fs=size||Math.min(13,w/5.5);
+    parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="${fs}" fill="${color}" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif">${text}</text>`);
   }
-  function updatePlan(){
-    const island=buildIslandPlan();
-    const walls=buildWallsPlan(island);
+  function dimLine(parts,x1,y1,x2,y2,label,side){
+    // side: 'h' horizontal dimension (label above), 'v' vertical dimension (label to the left, rotated)
+    parts.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8a8f96" stroke-width="0.8"/>`);
+    if(side==="h"){
+      parts.push(`<line x1="${x1}" y1="${y1-4}" x2="${x1}" y2="${y1+4}" stroke="#8a8f96" stroke-width="0.8"/>`);
+      parts.push(`<line x1="${x2}" y1="${y2-4}" x2="${x2}" y2="${y2+4}" stroke="#8a8f96" stroke-width="0.8"/>`);
+      parts.push(`<text x="${(x1+x2)/2}" y="${y1-6}" font-size="10" fill="#6d737b" text-anchor="middle" font-family="Inter,Arial,sans-serif">${label}</text>`);
+    }else{
+      parts.push(`<line x1="${x1-4}" y1="${y1}" x2="${x1+4}" y2="${y1}" stroke="#8a8f96" stroke-width="0.8"/>`);
+      parts.push(`<line x1="${x2-4}" y1="${y2}" x2="${x2+4}" y2="${y2}" stroke="#8a8f96" stroke-width="0.8"/>`);
+      parts.push(`<text x="${x1-8}" y="${(y1+y2)/2}" font-size="10" fill="#6d737b" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" transform="rotate(-90 ${x1-8} ${(y1+y2)/2})">${label}</text>`);
+    }
+  }
+
+  function unitColor(u,fHex,txtOnFacade){
+    if(u.isFiller)return{fill:"#dfe2e6",text:"#4d5359"};
+    if(u.isHob)return{fill:"#1c1c1c",text:"#fff"};
+    if(u.isDishwasher)return{fill:"#c7cbd1",text:"#15171a"};
+    if(u.isSink)return{fill:"#e7e7e7",text:"#15171a"};
+    return{fill:fHex,text:txtOnFacade};
+  }
+
+  function renderTopView(walls,island,fHex,txtOnFacade){
+    const D=DIM.baseDepth,pad=30,dimGap=22;
+    const wall1Len=walls[0]?walls[0].length:0;
+    const wall2Len=walls[1]?walls[1].length:0;
+    const wall3Len=walls[2]?walls[2].length:0;
+    const svgW=wall1Len+pad*2;
+    const bodyH=D+Math.max(wall2Len,wall3Len,0);
+    const svgH=bodyH+pad*2+dimGap+(island?island.depth+dimGap+40:0);
+    const parts=[];
+
+    function drawRun(units,x0,y0,dx,dy,depthPx){
+      // dx,dy: unit vector of travel direction (1,0) for horizontal, (0,1) for vertical
+      let x=x0,y=y0;
+      units.forEach(u=>{
+        const len=u.width;
+        const rw=dx?len:depthPx, rh=dx?depthPx:len;
+        const {fill,text}=unitColor(u,fHex,txtOnFacade);
+        parts.push(`<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="${fill}" stroke="#b9bec4" stroke-width="1"/>`);
+        const label=u.label||(u.filler?"+":(len>=30?`${len}`:""));
+        addPlanLabel(parts,x,y,rw,rh,label,text,10);
+        x+=dx*len; y+=dy*len;
+      });
+    }
+
+    // wall1: horizontal along top, back at y=pad
+    drawRun(walls[0]?walls[0].units:[],pad,pad,1,0,D);
+    dimLine(parts,pad,pad+D+10,pad+wall1Len,pad+D+10,`${wall1Len} cm`,"h");
+
+    if(walls[1]){
+      drawRun(walls[1].units,pad,pad+D,0,1,D);
+      dimLine(parts,pad-10,pad+D,pad-10,pad+D+wall2Len,`${wall2Len} cm`,"v");
+    }
+    if(walls[2]){
+      const xRight=pad+wall1Len-D;
+      drawRun(walls[2].units,xRight,pad+D,0,1,D);
+      dimLine(parts,pad+wall1Len+10,pad+D,pad+wall1Len+10,pad+D+wall3Len,`${wall3Len} cm`,"v");
+    }
+
+    if(island){
+      const iy=pad+bodyH+dimGap+30;
+      parts.push(`<text x="${pad}" y="${iy-10}" font-size="12" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">Îlot central</text>`);
+      drawRun(island.units,pad,iy,1,0,island.depth);
+      dimLine(parts,pad,iy+island.depth+10,pad+island.length,iy+island.depth+10,`${island.length} cm`,"h");
+    }
+
+    const svg=$("#topSvg");
+    svg.setAttribute("viewBox",`0 0 ${svgW} ${svgH}`);
+    svg.setAttribute("width",Math.max(svgW*2.2,400));
+    svg.innerHTML=parts.join("");
+  }
+
+  function renderElevation(walls,island,fHex,txtOnFacade,upperOn,upperH){
     const groups=walls.map((w,i)=>({label:`Mur ${i+1} — ${w.length} cm`,length:w.length,units:w.units}));
     if(island)groups.push({label:`Îlot central — ${island.length} cm`,length:island.length,units:island.units,isIsland:true});
 
-    const stripH=170,baseH=85,upperH=50,gap=46,labelH=22,pad=16;
-    const maxLen=Math.max(...groups.map(g=>g.length),100);
-    const svgW=maxLen+pad*2;
-    const svgH=groups.length*(stripH+labelH+gap)+pad;
-    const upperOn=$("#upper").checked;
-    const fHex=facadeHex();
+    const colH=DIM.plinth+DIM.baseDoorH+DIM.gapH+(upperOn?upperH:0);
+    const baseTotalH=DIM.plinth+DIM.baseDoorH;
     const upperHex=lightenHex(fHex,0.32);
-    const txtOnFacade=textColorFor(fHex);
+    const pad=18,dimW=36,labelH=22,gap=40;
+    const maxLen=Math.max(...groups.map(g=>g.length),100);
+    const svgW=dimW+maxLen+pad*2;
+    const rowH=colH+labelH+gap;
+    const svgH=groups.length*rowH+pad;
 
     let y=pad;
     const parts=[];
-    const counts={};
     groups.forEach(g=>{
-      parts.push(`<text x="${pad}" y="${y+2}" font-size="15" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">${g.label}</text>`);
+      parts.push(`<text x="${dimW}" y="${y+2}" font-size="14" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">${g.label}</text>`);
       const top=y+labelH;
-      let x=pad;
+      const floorY=top+colH;
+      let x=dimW;
       g.units.forEach(u=>{
         const w=u.width;
         if(u.tall){
-          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${stripH}" fill="#2a2c31" stroke="#b9bec4" stroke-width="1.5"/>`);
-          addPlanLabel(parts,x,top,w,stripH,u.label,"#fff");
+          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="#b9bec4" stroke-width="1.5"/>`);
+          addPlanLabel(parts,x,top,w,colH,u.label,"#fff");
+          // plinth line
+          parts.push(`<line x1="${x}" y1="${floorY-DIM.plinth}" x2="${x+w}" y2="${floorY-DIM.plinth}" stroke="#555" stroke-width="0.7" stroke-dasharray="2,2"/>`);
         }else{
-          const baseTop=top+stripH-baseH;
-          let fill=fHex,tColor=txtOnFacade;
-          if(u.isHob){fill="#1c1c1c";tColor="#fff"}
-          else if(u.isDishwasher){fill="#c7cbd1";tColor="#15171a"}
-          else if(u.isSink){fill="#e7e7e7";tColor="#15171a"}
-          parts.push(`<rect x="${x}" y="${baseTop}" width="${w}" height="${baseH}" fill="${fill}" stroke="#b9bec4" stroke-width="1.5"/>`);
-          addPlanLabel(parts,x,baseTop,w,baseH,u.label||`${w} cm`,tColor);
+          const {fill,text}=unitColor(u,fHex,txtOnFacade);
+          const baseY=floorY-baseTotalH;
+          parts.push(`<rect x="${x}" y="${baseY}" width="${w}" height="${DIM.baseDoorH}" fill="${fill}" stroke="#b9bec4" stroke-width="1.5"/>`);
+          addPlanLabel(parts,x,baseY,w,DIM.baseDoorH,u.label||(w>=30?`${w} cm`:""),text);
+          parts.push(`<rect x="${x}" y="${floorY-DIM.plinth}" width="${w}" height="${DIM.plinth}" fill="#d8dadd" stroke="#b9bec4" stroke-width="1"/>`);
           if(upperOn&&!g.isIsland&&!u.isHob&&!u.isSink&&!u.isDishwasher){
             parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${upperH}" fill="${upperHex}" stroke="#b9bec4" stroke-width="1.5" opacity=".92"/>`);
           }
         }
-        const key=u.legend||`Meuble bas ${w} cm`;
-        counts[key]=(counts[key]||0)+1;
         x+=w;
       });
-      y+=stripH+labelH+gap;
+      // height dimension line (once per row, on the left)
+      dimLine(parts,dimW-10,top,dimW-10,floorY,`${colH} cm`,"v");
+      y+=rowH;
     });
 
     const svg=$("#planSvg");
     svg.setAttribute("viewBox",`0 0 ${svgW} ${svgH}`);
+    svg.setAttribute("width",Math.max(svgW*1.4,400));
     svg.innerHTML=parts.join("");
-    renderPlanLegend(counts,upperOn);
-  }
-  function renderPlanLegend(counts,upperOn){
-    const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
-    const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?" (meubles hauts inclus au-dessus)":""}.</p>`;
   }
 
+  function computeCounts(walls,island){
+    const counts={};
+    const add=u=>{const key=u.legend||`Meuble bas ${u.width} cm`;counts[key]=(counts[key]||0)+1};
+    walls.forEach(w=>w.units.forEach(add));
+    if(island)island.units.forEach(add);
+    return counts;
+  }
+  function renderPlanLegend(counts,upperOn,upperH){
+    const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
+    const total=Object.values(counts).reduce((a,b)=>a+b,0);
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur des joues de finition sera intégré dans la future liste de débit précise.</p>`;
+  }
+
+  function updatePlan(){
+    const island=buildIslandPlan();
+    const items=activeItems(island);
+    renderPlacementUI(items);
+    const walls=buildWallsPlan(island,items);
+    const upperOn=$("#upper").checked;
+    const upperH=Number($("#upperHeight").value)||70;
+    const fHex=facadeHex();
+    const txtOnFacade=textColorFor(fHex);
+
+    renderTopView(walls,island,fHex,txtOnFacade);
+    renderElevation(walls,island,fHex,txtOnFacade,upperOn,upperH);
+    renderPlanLegend(computeCounts(walls,island),upperOn,upperH);
+  }
+
+  $("#upperHeightBox").classList.toggle("hidden",!$("#upper").checked);
   layouts();
 }
 </script>
