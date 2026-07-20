@@ -61,6 +61,30 @@
   .place-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel);padding:9px 12px;border-radius:8px;margin-bottom:6px;font-size:12.5px}
   .place-row select{width:auto;height:32px;padding:0 8px;font-size:12px}
   .assum{font-size:11px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;margin:10px 0 0;line-height:1.5}
+
+  /* --- export / plan pro --- */
+  .export-btn{border:0;border-radius:9px;padding:11px 18px;background:var(--blue);color:#fff;font-weight:700;font-size:13px;cursor:pointer;flex:none}
+  .export-btn:hover{background:var(--blue-dark)}
+  #exportView{background:transparent;max-width:1100px;margin:24px auto;padding:0 5vw 60px}
+  .export-toolbar{display:flex;gap:10px;justify-content:flex-end;padding:0 0 14px}
+  .export-toolbar button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer;font-weight:600}
+  .export-toolbar button#printBtn{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .export-page{background:#fff;border:1px solid var(--line);border-radius:14px;padding:30px;box-shadow:var(--shadow)}
+  .export-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:6px}
+  .export-head h2{font-size:19px;margin:0 0 4px}
+  .export-head p{font-size:12.5px;color:var(--muted);margin:0}
+  .export-page h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:28px 0 10px}
+  .export-page svg{max-width:100%;height:auto;display:block}
+  .nomen-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .nomen-table th,.nomen-table td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+  .nomen-table th{background:var(--panel);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  @media print{
+    body *{visibility:hidden}
+    #exportView,#exportView *{visibility:visible}
+    #exportView{position:absolute;left:0;top:0;width:100%;margin:0;padding:0;max-width:none}
+    .no-print{display:none!important}
+    .export-page{box-shadow:none;border:0}
+  }
 </style>
 </head>
 <body>
@@ -76,10 +100,14 @@
 </div>
 
 <div id="app" class="hidden">
-  <header>
-    <div class="tag">Usage interne</div>
-    <h1>Atelier — plan 2D &amp; liste de commande</h1>
+  <header style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div class="tag">Usage interne</div>
+      <h1>Atelier — plan 2D &amp; liste de commande</h1>
+    </div>
+    <button id="exportBtn" class="export-btn">Extraire le plan</button>
   </header>
+  <div id="exportView" class="hidden"></div>
   <main>
     <aside>
       <h2><span class="n">1</span>Implantation</h2>
@@ -242,7 +270,7 @@ function initApp(){
     if(!(island&&island.hasSink))items.push({key:"evier",width:80,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
     if(selected.appliances.has("Plaque induction")&&!(island&&island.hasHob))items.push({key:"plaque",width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true,needsClearance:true});
     if(selected.appliances.has("Lave-vaisselle"))items.push({key:"lv",width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
-    if(selected.appliances.has("Cave à vin"))items.push({key:"cave",width:60,tall:false,label:"Cave",legend:"Cave à vin"});
+    if(selected.appliances.has("Cave à vin"))items.push({key:"cave",width:60,tall:false,label:"Cave",legend:"Cave à vin",isWine:true});
     return items;
   }
   function renderPlacementUI(items){
@@ -453,6 +481,228 @@ function initApp(){
     renderElevation(walls,island,fHex,txtOnFacade,upperOn,upperH);
     renderPlanLegend(computeCounts(walls,island),upperOn,upperH);
   }
+
+  /* --- extraction : plan pro numéroté (repères, cotes cumulées, icônes) --- */
+  function assignNumbers(walls,island){
+    let n=1;
+    walls.forEach(w=>w.units.forEach(u=>{u.num=n++}));
+    if(island)island.units.forEach(u=>{u.num=n++});
+  }
+  function numBadge(parts,x,y,num){
+    parts.push(`<circle cx="${x}" cy="${y}" r="7.5" fill="#fff" stroke="#15171a" stroke-width="1"/><text x="${x}" y="${y+3}" font-size="9" fill="#15171a" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="700">${num}</text>`);
+  }
+  function iconSinkTop(x,y,w,h){
+    if(w<26||h<26)return"";
+    return `<rect x="${x+w*0.18}" y="${y+h*0.22}" width="${w*0.64}" height="${h*0.56}" rx="4" fill="none" stroke="#4d5359" stroke-width="1"/><circle cx="${x+w*0.5}" cy="${y+h*0.5}" r="${Math.min(w,h)*0.08}" fill="none" stroke="#4d5359" stroke-width="0.8"/>`;
+  }
+  function iconHobTop(x,y,w,h){
+    if(w<26||h<26)return"";
+    const r=Math.min(w,h)*0.13,cx1=x+w*0.32,cx2=x+w*0.68,cy1=y+h*0.35,cy2=y+h*0.65;
+    return [cx1,cx2].map(cx=>[cy1,cy2].map(cy=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="1"/>`).join("")).join("");
+  }
+  function iconFridge(x,y,w,h){
+    if(w<22||h<40)return"";
+    const midY=y+h*0.38;
+    return `<line x1="${x+3}" y1="${midY}" x2="${x+w-3}" y2="${midY}" stroke="#fff" stroke-width="1"/><line x1="${x+w-9}" y1="${y+10}" x2="${x+w-9}" y2="${midY-6}" stroke="#fff" stroke-width="2"/><line x1="${x+w-9}" y1="${midY+8}" x2="${x+w-9}" y2="${y+h-14}" stroke="#fff" stroke-width="2"/>`;
+  }
+  function iconOven(x,y,w,h){
+    if(w<22||h<40)return"";
+    const cx=x+w/2,cy=y+h*0.62,r=Math.min(w,h*0.5)*0.24;
+    return `<rect x="${x+6}" y="${y+8}" width="${w-12}" height="7" fill="none" stroke="#fff" stroke-width="1"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="1.4"/>`;
+  }
+  function iconHobFront(x,y,w,h){
+    if(w<26||h<20)return"";
+    const r=Math.min(w*0.22,h*0.2),cx1=x+w*0.3,cx2=x+w*0.7,cy=y+h*0.4;
+    return `<circle cx="${cx1}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="1"/><circle cx="${cx2}" cy="${cy}" r="${r}" fill="none" stroke="#fff" stroke-width="1"/>`;
+  }
+  function iconSinkFront(x,y,w,h){
+    if(w<26||h<20)return"";
+    const bx=x+w*0.2,by=y+h*0.28,bw=w*0.6,bh=h*0.4;
+    return `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="3" fill="none" stroke="#4d5359" stroke-width="1.2"/><path d="M ${x+w/2} ${by} q 0 -12 12 -12" fill="none" stroke="#4d5359" stroke-width="1.2"/>`;
+  }
+  function iconDishwasher(x,y,w,h){
+    if(w<20||h<20)return"";
+    return `<line x1="${x+4}" y1="${y+9}" x2="${x+w-4}" y2="${y+9}" stroke="#15171a" stroke-width="2"/><rect x="${x+w*0.32}" y="${y+h*0.55}" width="${w*0.36}" height="6" fill="none" stroke="#15171a" stroke-width="0.8"/>`;
+  }
+  function iconWine(x,y,w,h,color){
+    if(w<26||h<20)return"";
+    const cols=3,r=Math.min(w/cols,14)*0.24,c=color||"#4d5359";
+    let out="";
+    for(let i=0;i<cols;i++){
+      const cx=x+w*(i+0.5)/cols;
+      out+=`<circle cx="${cx}" cy="${y+h*0.32}" r="${r}" fill="none" stroke="${c}" stroke-width="0.9"/><circle cx="${cx}" cy="${y+h*0.62}" r="${r}" fill="none" stroke="${c}" stroke-width="0.9"/>`;
+    }
+    return out;
+  }
+  function cumDimLine(parts,ox,oy,dx,dy,bounds,side){
+    const total=bounds[bounds.length-1];
+    const ex=ox+dx*total,ey=oy+dy*total;
+    parts.push(`<line x1="${ox}" y1="${oy}" x2="${ex}" y2="${ey}" stroke="#8a8f96" stroke-width="0.8"/>`);
+    bounds.forEach((b,i)=>{
+      const tx=ox+dx*b,ty=oy+dy*b;
+      const isTotal=i===bounds.length-1&&bounds.length>1;
+      const tooCloseToTotal=!isTotal&&b!==0&&(total-b)<14;
+      const fs=isTotal?10.5:8.5,fw=isTotal?700:400,col=isTotal?"#15171a":"#6d737b";
+      const labelSvg=tooCloseToTotal?"":(side==="h"
+        ?`<text x="${tx}" y="${ty-7}" font-size="${fs}" font-weight="${fw}" fill="${col}" text-anchor="middle" font-family="Inter,Arial,sans-serif">${b}</text>`
+        :`<text x="${tx-8}" y="${ty}" font-size="${fs}" font-weight="${fw}" fill="${col}" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" transform="rotate(-90 ${tx-8} ${ty})">${b}</text>`);
+      if(side==="h")parts.push(`<line x1="${tx}" y1="${ty-4}" x2="${tx}" y2="${ty+4}" stroke="#8a8f96" stroke-width="0.8"/>${labelSvg}`);
+      else parts.push(`<line x1="${tx-4}" y1="${ty}" x2="${tx+4}" y2="${ty}" stroke="#8a8f96" stroke-width="0.8"/>${labelSvg}`);
+    });
+  }
+  function zoneDims(parts,x,top,upperOn,upperH){
+    let y=top;
+    if(upperOn){dimLine(parts,x,y,x,y+upperH,`${upperH} cm`,"v");y+=upperH}
+    dimLine(parts,x,y,x,y+DIM.gapH,`${DIM.gapH} cm`,"v");y+=DIM.gapH;
+    dimLine(parts,x,y,x,y+DIM.baseDoorH,`${DIM.baseDoorH} cm`,"v");y+=DIM.baseDoorH;
+    dimLine(parts,x,y,x,y+DIM.plinth,`${DIM.plinth} cm`,"v");
+  }
+  function numberedRun(parts,units,x0,y0,dx,dy,depthPx,fHex,txtOnFacade){
+    let x=x0,y=y0;
+    const bounds=[0];
+    units.forEach(u=>{
+      const len=u.width;
+      const rw=dx?len:depthPx,rh=dx?depthPx:len;
+      const{fill,text}=unitColor(u,fHex,txtOnFacade);
+      parts.push(`<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="${fill}" stroke="#8a8f96" stroke-width="1"/>`);
+      if(u.isSink)parts.push(iconSinkTop(x,y,rw,rh));
+      else if(u.isHob)parts.push(iconHobTop(x,y,rw,rh));
+      if(u.num!=null)numBadge(parts,x+9,y+9,u.num);
+      x+=dx*len;y+=dy*len;
+      bounds.push(bounds[bounds.length-1]+len);
+    });
+    return bounds;
+  }
+  function buildExportTopSvg(walls,island,fHex,txtOnFacade){
+    const D=DIM.baseDepth,pad=40,dimGap=30;
+    const wall1Len=walls[0]?walls[0].length:0;
+    const wall2Len=walls[1]?walls[1].length:0;
+    const wall3Len=walls[2]?walls[2].length:0;
+    const svgW=wall1Len+pad*2+30;
+    const bodyH=D+Math.max(wall2Len,wall3Len,0);
+    const svgH=bodyH+pad*2+dimGap+(island?island.depth+dimGap+50:0);
+    const parts=[];
+    const b1=numberedRun(parts,walls[0]?walls[0].units:[],pad,pad,1,0,D,fHex,txtOnFacade);
+    cumDimLine(parts,pad,pad+D+16,1,0,b1,"h");
+    if(walls[1]){
+      const b2=numberedRun(parts,walls[1].units,pad,pad+D,0,1,D,fHex,txtOnFacade);
+      cumDimLine(parts,pad-16,pad+D,0,1,b2,"v");
+    }
+    if(walls[2]){
+      const xRight=pad+wall1Len-D;
+      const b3=numberedRun(parts,walls[2].units,xRight,pad+D,0,1,D,fHex,txtOnFacade);
+      cumDimLine(parts,pad+wall1Len+16,pad+D,0,1,b3,"v");
+    }
+    if(island){
+      const iy=pad+bodyH+dimGap+34;
+      parts.push(`<text x="${pad}" y="${iy-12}" font-size="12" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">Îlot central</text>`);
+      const bi=numberedRun(parts,island.units,pad,iy,1,0,island.depth,fHex,txtOnFacade);
+      cumDimLine(parts,pad,iy+island.depth+16,1,0,bi,"h");
+    }
+    return `<svg viewBox="0 0 ${svgW} ${svgH}" width="${Math.max(svgW*2,500)}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}</svg>`;
+  }
+  function buildExportElevationSvg(walls,island,fHex,txtOnFacade,upperOn,upperH){
+    const groups=walls.map((w,i)=>({label:`Mur ${i+1} — ${w.length} cm`,length:w.length,units:w.units}));
+    if(island)groups.push({label:`Îlot central — ${island.length} cm`,length:island.length,units:island.units,isIsland:true});
+    const colH=DIM.plinth+DIM.baseDoorH+DIM.gapH+(upperOn?upperH:0);
+    const baseTotalH=DIM.plinth+DIM.baseDoorH;
+    const upperHex=lightenHex(fHex,0.32);
+    const pad=18,dimW=70,labelH=24,gap=46;
+    const maxLen=Math.max(...groups.map(g=>g.length),100);
+    const svgW=dimW+maxLen+pad*2;
+    const rowH=colH+labelH+gap;
+    const svgH=groups.length*rowH+pad;
+    const parts=[];
+    let y=pad;
+    groups.forEach(g=>{
+      parts.push(`<text x="${dimW}" y="${y+2}" font-size="14" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">${g.label}</text>`);
+      const top=y+labelH;
+      const floorY=top+colH;
+      let x=dimW;
+      g.units.forEach(u=>{
+        const w=u.width;
+        if(u.tall){
+          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="#8a8f96" stroke-width="1.5"/>`);
+          if(u.key==="frigo")parts.push(iconFridge(x,top,w,colH));
+          else if(u.key==="four")parts.push(iconOven(x,top,w,colH));
+          parts.push(`<line x1="${x}" y1="${floorY-DIM.plinth}" x2="${x+w}" y2="${floorY-DIM.plinth}" stroke="#555" stroke-width="0.7" stroke-dasharray="2,2"/>`);
+        }else{
+          const{fill,text}=unitColor(u,fHex,txtOnFacade);
+          const baseY=floorY-baseTotalH;
+          parts.push(`<rect x="${x}" y="${baseY}" width="${w}" height="${DIM.baseDoorH}" fill="${fill}" stroke="#8a8f96" stroke-width="1.5"/>`);
+          if(u.isHob)parts.push(iconHobFront(x,baseY,w,DIM.baseDoorH));
+          else if(u.isSink)parts.push(iconSinkFront(x,baseY,w,DIM.baseDoorH));
+          else if(u.isDishwasher)parts.push(iconDishwasher(x,baseY,w,DIM.baseDoorH));
+          else if(u.isWine)parts.push(iconWine(x,baseY,w,DIM.baseDoorH,text));
+          parts.push(`<rect x="${x}" y="${floorY-DIM.plinth}" width="${w}" height="${DIM.plinth}" fill="#d8dadd" stroke="#8a8f96" stroke-width="1"/>`);
+          if(upperOn&&!g.isIsland&&!u.isHob&&!u.isSink&&!u.isDishwasher){
+            parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${upperH}" fill="${upperHex}" stroke="#8a8f96" stroke-width="1.5" opacity=".92"/>`);
+          }
+        }
+        if(u.num!=null)numBadge(parts,x+11,floorY-6,u.num);
+        x+=w;
+      });
+      zoneDims(parts,dimW-44,top,upperOn,upperH);
+      dimLine(parts,dimW-16,top,dimW-16,floorY,`${colH} cm`,"v");
+      y+=rowH;
+    });
+    return `<svg viewBox="0 0 ${svgW} ${svgH}" width="${Math.max(svgW*1.5,500)}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}</svg>`;
+  }
+  function buildNomenclatureTable(walls,island){
+    const rows=[];
+    walls.forEach((w,i)=>w.units.forEach(u=>rows.push({...u,loc:`Mur ${i+1}`})));
+    if(island)island.units.forEach(u=>rows.push({...u,loc:"Îlot central"}));
+    rows.sort((a,b)=>a.num-b.num);
+    const trs=rows.map(u=>{
+      const desig=u.legend||u.label||(u.tall?`Meuble colonne ${u.width} cm`:`Meuble bas ${u.width} cm`);
+      return `<tr><td>${u.num}</td><td>${desig}</td><td>${u.width} cm</td><td>${u.tall?"Colonne":"Bas"}</td><td>${u.loc}</td></tr>`;
+    }).join("");
+    return `<table class="nomen-table"><thead><tr><th>N°</th><th>Désignation</th><th>Largeur</th><th>Type</th><th>Emplacement</th></tr></thead><tbody>${trs}</tbody></table>`;
+  }
+  function buildExport(){
+    const island=buildIslandPlan();
+    const items=activeItems(island);
+    const walls=buildWallsPlan(island,items);
+    assignNumbers(walls,island);
+    const upperOn=$("#upper").checked;
+    const upperH=Number($("#upperHeight").value)||70;
+    const fHex=facadeHex();
+    const txtOnFacade=textColorFor(fHex);
+    const topSvg=buildExportTopSvg(walls,island,fHex,txtOnFacade);
+    const elevSvg=buildExportElevationSvg(walls,island,fHex,txtOnFacade,upperOn,upperH);
+    const table=buildNomenclatureTable(walls,island);
+    $("#exportView").innerHTML=`
+      <div class="export-toolbar no-print">
+        <button id="printBtn">Imprimer / Exporter en PDF</button>
+        <button id="backBtn">← Retour à l'édition</button>
+      </div>
+      <div class="export-page">
+        <div class="export-head">
+          <div><h2>NOVA Cuisine — Plan d'implantation</h2><p>Document interne — ne pas transmettre au client</p></div>
+          <p>${new Date().toLocaleDateString("fr-FR")}</p>
+        </div>
+        <h3>Vue de dessus — repères ${1}–${(walls.reduce((s,w)=>s+w.units.length,0)+(island?island.units.length:0))}</h3>
+        ${topSvg}
+        <h3>Vue de face</h3>
+        ${elevSvg}
+        <h3>Nomenclature</h3>
+        ${table}
+      </div>`;
+  }
+  $("#exportBtn").addEventListener("click",()=>{
+    buildExport();
+    $("#exportView").classList.remove("hidden");
+    $("main").classList.add("hidden");
+    $("#exportBtn").classList.add("hidden");
+  });
+  $("#exportView").addEventListener("click",e=>{
+    if(e.target.id==="printBtn")window.print();
+    if(e.target.id==="backBtn"){
+      $("#exportView").classList.add("hidden");
+      $("main").classList.remove("hidden");
+      $("#exportBtn").classList.remove("hidden");
+    }
+  });
 
   $("#upperHeightBox").classList.toggle("hidden",!$("#upper").checked);
   layouts();
