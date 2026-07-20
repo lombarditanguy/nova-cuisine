@@ -300,7 +300,7 @@ function initApp(){
     if(selected.appliances.has("Four à vapeur"))ovenParts.push("Four vapeur");
     if(selected.appliances.has("Micro-ondes"))ovenParts.push("Micro-ondes");
     if(ovenParts.length)items.push({key:"four",width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + "),needsClearance:true});
-    if(!(island&&island.hasSink))items.push({key:"evier",width:80,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
+    if(!(island&&island.hasSink))items.push({key:"evier",width:120,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true,needsClearance:true});
     if(selected.appliances.has("Plaque induction")&&!(island&&island.hasHob))items.push({key:"plaque",width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true,needsClearance:true});
     if(selected.appliances.has("Lave-vaisselle"))items.push({key:"lv",width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
     if(selected.appliances.has("Cave à vin"))items.push({key:"cave",width:60,tall:false,label:"Cave",legend:"Cave à vin",isWine:true});
@@ -331,29 +331,22 @@ function initApp(){
   function genId(){return "m"+Math.random().toString(36).slice(2,9)}
 
   /* --- ordre des meubles par mur : liste éditable (déplacer / échanger / supprimer) --- */
+  // Chaque appel régénère entièrement la portion "automatique" (fillers jamais touchés par
+  // l'utilisateur, marqués auto:true) plutôt que d'ajouter un delta au fil des saisies — sinon
+  // taper une largeur chiffre par chiffre (ex: 5 → 50 → 500) laissait des petits fillers
+  // fragmentés à chaque étape intermédiaire, d'où les bandeaux qui apparaissaient au hasard.
   let wallOrder={};
-  let wallLastBudget={};
   function reconcileWallOrder(i,wallLen,applItems,fixedUsed){
     const budget=Math.max(0,wallLen-fixedUsed);
-    if(!wallOrder[i]){
-      const order=[];
-      applItems.forEach(it=>order.push({type:"appliance",key:it.key}));
-      const used0=applItems.reduce((s,it)=>s+it.width,0);
-      standardBreakdown(Math.max(0,budget-used0)).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend,front:{kind:"door"}}));
-      wallOrder[i]=order;
-      wallLastBudget[i]=budget;
-      return order;
-    }
-    let order=wallOrder[i];
+    let order=wallOrder[i]||[];
     const applByKey={};applItems.forEach(it=>applByKey[it.key]=it);
     const applKeys=new Set(applItems.map(it=>it.key));
-    order=order.filter(e=>e.type==="filler"||applKeys.has(e.key));
+    order=order.filter(e=>e.type==="appliance"?applKeys.has(e.key):!e.auto);
     applItems.forEach(it=>{
       if(!order.some(e=>e.type==="appliance"&&e.key===it.key))order.push({type:"appliance",key:it.key});
     });
-    const grew=budget-(wallLastBudget[i]??budget);
-    if(grew>0)standardBreakdown(grew).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend,front:{kind:"door"}}));
-    wallLastBudget[i]=budget;
+    const used=order.reduce((s,e)=>s+(e.type==="appliance"?applByKey[e.key].width:e.width),0);
+    standardBreakdown(Math.max(0,budget-used)).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend,front:{kind:"door"},auto:true}));
     wallOrder[i]=order;
     return order;
   }
@@ -447,7 +440,7 @@ function initApp(){
     const feature=$("#islandFeature").value;
     const units=[];
     if(feature==="Plaque de cuisson"||feature==="Plaque et évier")units.push({width:60,tall:false,label:"Plaque",legend:"Plaque (îlot)",isHob:true});
-    if(feature==="Évier"||feature==="Plaque et évier")units.push({width:80,tall:false,label:"Évier",legend:`Évier îlot (${selected.sink})`,isSink:true});
+    if(feature==="Évier"||feature==="Plaque et évier")units.push({width:120,tall:false,label:"Évier",legend:`Évier îlot (${selected.sink})`,isSink:true});
     fillStandard(units,Math.max(0,width-units.reduce((s,u)=>s+u.width,0)));
     let cum=0;
     units.forEach(u=>{u.x=cum;cum+=u.width});
@@ -544,6 +537,7 @@ function initApp(){
 
   /* --- sélection depuis le plan : cliquer un meuble le relie à sa ligne dans l'éditeur --- */
   let pickedUnit=null; // {kind:'base'|'upper', wall, key, orderId}
+  let islandPos={x:null,y:null}; // null = default position below the walls; set once dragged
   function isPicked(kind,wall,key,orderId){
     if(!pickedUnit||pickedUnit.kind!==kind||pickedUnit.wall!==wall)return false;
     if(key!=null)return pickedUnit.key===key;
@@ -565,9 +559,12 @@ function initApp(){
     const wall1Len=walls[0]?walls[0].length:0;
     const wall2Len=walls[1]?walls[1].length:0;
     const wall3Len=walls[2]?walls[2].length:0;
-    const svgW=wall1Len+pad*2;
     const bodyH=D+Math.max(wall2Len,wall3Len,0);
-    const svgH=bodyH+pad*2+dimGap+(island?island.depth+dimGap+40:0);
+    const defIslandX=pad,defIslandY=pad+bodyH+dimGap+30;
+    const islandX=island&&islandPos.x!=null?islandPos.x:defIslandX;
+    const islandY=island&&islandPos.y!=null?islandPos.y:defIslandY;
+    const svgW=Math.max(wall1Len+pad*2,island?islandX+island.length+pad:0);
+    const svgH=Math.max(bodyH+pad*2+dimGap+(island?island.depth+dimGap+40:0),island?islandY+island.depth+40:0);
     const parts=[];
 
     function drawRun(units,x0,y0,dx,dy,depthPx,wallIndex){
@@ -601,10 +598,11 @@ function initApp(){
     }
 
     if(island){
-      const iy=pad+bodyH+dimGap+30;
-      parts.push(`<text x="${pad}" y="${iy-10}" font-size="12" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700">Îlot central</text>`);
-      drawRun(island.units,pad,iy,1,0,island.depth);
-      dimLine(parts,pad,iy+island.depth+10,pad+island.length,iy+island.depth+10,`${island.length} cm`,"h");
+      parts.push(`<g data-draggable="island" data-default-x="${defIslandX}" data-default-y="${defIslandY}" style="cursor:move">`);
+      parts.push(`<text x="${islandX}" y="${islandY-10}" font-size="12" fill="#4d5359" font-family="Inter,Arial,sans-serif" font-weight="700" pointer-events="none">Îlot central (glisser pour déplacer)</text>`);
+      drawRun(island.units,islandX,islandY,1,0,island.depth);
+      dimLine(parts,islandX,islandY+island.depth+10,islandX+island.length,islandY+island.depth+10,`${island.length} cm`,"h");
+      parts.push(`</g>`);
     }
 
     const svg=$("#topSvg");
@@ -788,6 +786,7 @@ function initApp(){
             // that's what "collé aux colonnes" needs: no leftover gap once the cabinet reaches it.
             arr.splice(j,1);
           }else{
+            if(kind==="base"){arr[idx].auto=false;arr[j].auto=false}
             [arr[idx],arr[j]]=[arr[j],arr[idx]];
           }
           updatePlan();
@@ -805,7 +804,7 @@ function initApp(){
     const add=e.target.closest(".mod-add");
     if(add){
       const i=Number(add.dataset.wall),kind=add.dataset.kind;
-      if(kind==="baseMod"){if(!wallOrder[i])wallOrder[i]=[];wallOrder[i].push({type:"filler",id:genId(),width:60,front:{kind:"door"}})}
+      if(kind==="baseMod"){if(!wallOrder[i])wallOrder[i]=[];wallOrder[i].push({type:"filler",id:genId(),width:60,front:{kind:"door"},auto:false})}
       else if(kind==="upperMod"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:60})}
       else if(kind==="upperGap"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:30,isGap:true})}
       updatePlan();
@@ -819,6 +818,7 @@ function initApp(){
     if(arr&&arr[idx]){
       arr[idx].width=Math.max(2,Number(inp.value)||2);
       arr[idx].legend=undefined;
+      arr[idx].auto=false;
       renderViews(computeState());
     }
   });
@@ -836,6 +836,7 @@ function initApp(){
       if(arr&&arr[idx]){
         const v=fs.value;
         arr[idx].front=v==="door"?{kind:"door"}:{kind:"drawers",count:Number(v.slice(1))};
+        arr[idx].auto=false;
         updatePlan();
       }
     }
@@ -865,6 +866,34 @@ function initApp(){
   }
   bindPlanClicks("#topSvg");
   bindPlanClicks("#planSvg");
+
+  /* --- glisser l'îlot central à la souris dans la vue de dessus --- */
+  function svgPoint(svg,evt){
+    const pt=svg.createSVGPoint();
+    pt.x=evt.clientX;pt.y=evt.clientY;
+    const ctm=svg.getScreenCTM();
+    if(!ctm)return{x:0,y:0};
+    const loc=pt.matrixTransform(ctm.inverse());
+    return{x:loc.x,y:loc.y};
+  }
+  let islandDrag=null;
+  $("#topSvg").addEventListener("pointerdown",e=>{
+    const g=e.target.closest('[data-draggable="island"]');
+    if(!g)return;
+    const svg=$("#topSvg");
+    const p=svgPoint(svg,e);
+    const origX=islandPos.x!=null?islandPos.x:Number(g.dataset.defaultX);
+    const origY=islandPos.y!=null?islandPos.y:Number(g.dataset.defaultY);
+    islandDrag={startX:p.x,startY:p.y,origX,origY};
+  });
+  window.addEventListener("pointermove",e=>{
+    if(!islandDrag)return;
+    const svg=$("#topSvg");
+    const p=svgPoint(svg,e);
+    islandPos={x:islandDrag.origX+(p.x-islandDrag.startX),y:islandDrag.origY+(p.y-islandDrag.startY)};
+    renderViews(computeState());
+  });
+  window.addEventListener("pointerup",()=>{islandDrag=null});
 
   /* --- extraction : plan pro numéroté (repères, cotes cumulées, icônes) --- */
   function assignNumbers(walls,island){
