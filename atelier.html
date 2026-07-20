@@ -386,11 +386,14 @@ function initApp(){
     units.forEach(u=>{if(u.tall||u.isFiller)blocks.push([x,x+u.width]);x+=u.width});
     return blocks;
   }
-  function advancePastBlocks(x,blocks){
+  function nextFreeStart(x,width,blocks){
+    // pushes x forward until the whole [x, x+width) span clears every block — not just the
+    // start point — so a wide module can't sweep across a column that begins mid-span (this
+    // happens right after the corner-clearance buffer, which is deliberately NOT a hard block).
     let moved=true;
     while(moved){
       moved=false;
-      for(const [s,e] of blocks)if(x>=s&&x<e){x=e;moved=true}
+      for(const [s,e] of blocks)if(x<e&&x+width>s){x=e;moved=true}
     }
     return x;
   }
@@ -427,12 +430,12 @@ function initApp(){
       if(!upperOn){w.upperUnits=[];return}
       if(upperOrder[i]===undefined)upperOrder[i]=seedUpperOrder(w);
       const blocks=hardBlocks(w.units);
-      let x=advancePastBlocks(0,blocks);
+      let x=0;
       const out=[];
       upperOrder[i].forEach(e=>{
+        x=nextFreeStart(x,e.width,blocks);
         if(!e.isGap)out.push({width:e.width,legend:e.legend,x,orderId:e.id});
         x+=e.width;
-        x=advancePastBlocks(x,blocks);
       });
       w.upperUnits=out;
     });
@@ -455,9 +458,12 @@ function initApp(){
     const lens=[Number($("#wall1").value)||0];
     if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
     if(layout==="en U")lens.push(Number($("#wall3").value)||0);
-    // cornerStart: an internal corner sits at the beginning of this wall's run (needs a filler + clearance
-    // buffer before any appliance that needs door/drawer access — no fridge/hob/oven touching an angle).
-    const walls=lens.map((len,i)=>({length:len,units:[],cornerStart:i===0?layout!=="linéaire":true}));
+    // hasCornerAtStart: an internal corner sits at the beginning of this wall's run — every wall
+    // touching that corner needs the clearance buffer check (a sensitive appliance could land
+    // first on either side). needsCornerFiller: only ONE side of a given corner should get the
+    // physical fileur d'angle piece — the "later" wall (i>0) claims it, the wall it corners into
+    // (i===0) doesn't add a second one for the same corner.
+    const walls=lens.map((len,i)=>({length:len,units:[],hasCornerAtStart:i===0?layout!=="linéaire":true,needsCornerFiller:i>0}));
 
     const byWall=walls.map(()=>[]);
     items.forEach(it=>{
@@ -468,9 +474,9 @@ function initApp(){
     walls.forEach((w,i)=>{
       w.units=[];
       const fe=freeEnds(i,layout);
-      if(w.cornerStart)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
+      if(w.needsCornerFiller)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
       if(fe.start)w.units.push(endPieceFor(i,"start"));
-      if(w.cornerStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,label:null,front:{kind:"door"}});
+      if(w.hasCornerAtStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,label:null,front:{kind:"door"}});
       const endPiece=fe.end?endPieceFor(i,"end"):null;
       const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0);
       const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
