@@ -270,7 +270,7 @@ function initApp(){
     worktopY:90,    // sol -> dessus plan de travail
     gapH:70,        // vide plan de travail -> bas meubles hauts
     baseDepth:50,   // profondeur meuble bas (plan de travail 600, débord 50, mur 50)
-    cornerFiller:4, // fileur d'angle — largeur à confirmer avec vous, valeur d'attente
+    cornerFiller:50, // fileur d'angle — 50x50 intérieur, décale les deux lignes de meubles pour le débattement des portes
     finishFiller:2, // fileur de finition (extrémité contre un mur) — largeur d'attente
     finishSide:2,   // joue de finition (extrémité libre) — largeur affichée provisoire, profondeur réelle (+5cm mur) à préciser en liste de débit
     baseH:90,       // hauteur meuble bas (plinthe + porte)
@@ -294,14 +294,14 @@ function initApp(){
   let assignments={};
   function activeItems(island){
     const items=[];
-    if(selected.appliances.has("Réfrigérateur"))items.push({key:"frigo",width:60,tall:true,label:"Frigo",legend:"Frigo",needsClearance:true});
+    if(selected.appliances.has("Réfrigérateur"))items.push({key:"frigo",width:60,tall:true,label:"Frigo",legend:"Frigo"});
     const ovenParts=[];
     if(selected.appliances.has("Four"))ovenParts.push("Four");
     if(selected.appliances.has("Four à vapeur"))ovenParts.push("Four vapeur");
     if(selected.appliances.has("Micro-ondes"))ovenParts.push("Micro-ondes");
-    if(ovenParts.length)items.push({key:"four",width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + "),needsClearance:true});
-    if(!(island&&island.hasSink))items.push({key:"evier",width:120,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true,needsClearance:true});
-    if(selected.appliances.has("Plaque induction")&&!(island&&island.hasHob))items.push({key:"plaque",width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true,needsClearance:true});
+    if(ovenParts.length)items.push({key:"four",width:60,tall:true,label:ovenParts.length>1?"Colonne four":"Four",legend:ovenParts.join(" + ")});
+    if(!(island&&island.hasSink))items.push({key:"evier",width:120,tall:false,label:"Évier",legend:`Évier (${selected.sink})`,isSink:true});
+    if(selected.appliances.has("Plaque induction")&&!(island&&island.hasHob))items.push({key:"plaque",width:60,tall:false,label:"Plaque",legend:"Plaque"+(selected.appliances.has("Hotte aspirante")?" + hotte":""),isHob:true});
     if(selected.appliances.has("Lave-vaisselle"))items.push({key:"lv",width:60,tall:false,label:"LV",legend:"Lave-vaisselle",isDishwasher:true});
     if(selected.appliances.has("Cave à vin"))items.push({key:"cave",width:60,tall:false,label:"Cave",legend:"Cave à vin",isWine:true});
     return items;
@@ -451,11 +451,12 @@ function initApp(){
     const lens=[Number($("#wall1").value)||0];
     if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
     if(layout==="en U")lens.push(Number($("#wall3").value)||0);
-    // hasCornerAtStart: an internal corner sits at the beginning of this wall's run — every wall
-    // touching that corner needs the clearance buffer check (a sensitive appliance could land
-    // first on either side). needsCornerFiller: only ONE side of a given corner should get the
-    // physical fileur d'angle piece — the "later" wall (i>0) claims it, the wall it corners into
-    // (i===0) doesn't add a second one for the same corner.
+    // Every internal corner needs a 50x50cm fileur d'angle: a real physical block that offsets
+    // BOTH cabinet lines meeting there, so their doors have full swing clearance — universally,
+    // not just when a specific appliance sits nearby. It's one physical piece, counted once: the
+    // "later" wall (needsCornerFiller, i>0) gets the real ordered "Fileur d'angle" unit; the wall
+    // it corners into (hasCornerAtStart, i===0) just needs the matching 50cm reserved as void,
+    // since that same physical block already occupies the space from its side too.
     const walls=lens.map((len,i)=>({length:len,units:[],hasCornerAtStart:i===0?layout!=="linéaire":true,needsCornerFiller:i>0}));
 
     const byWall=walls.map(()=>[]);
@@ -468,15 +469,15 @@ function initApp(){
       w.units=[];
       const fe=freeEnds(i,layout);
       if(w.needsCornerFiller)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
+      else if(w.hasCornerAtStart)w.units.push({width:DIM.cornerFiller,tall:false,isGap:true});
       if(fe.start)w.units.push(endPieceFor(i,"start"));
-      if(w.hasCornerAtStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,isGap:true});
       const endPiece=fe.end?endPieceFor(i,"end"):null;
-      // wall0's far end is also an internal corner (into wall3) in a U-shape only — needs the
-      // same clearance guarantee as any wall-start corner, or a sensitive appliance pushed toward
-      // that end has no room for its door to swing.
+      // wall0's far end is also an internal corner (into wall3) in a U-shape only — wall3 already
+      // claims the real Fileur d'angle piece for that corner (needsCornerFiller), so wall0's end
+      // just needs the matching void.
       const hasCornerAtEnd=i===0&&layout==="en U";
-      const endClearance=(hasCornerAtEnd&&byWall[i].some(it=>it.needsClearance))?{width:40,tall:false,isGap:true}:null;
-      const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0)+(endClearance?endClearance.width:0);
+      const endVoid=hasCornerAtEnd?{width:DIM.cornerFiller,tall:false,isGap:true}:null;
+      const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0)+(endVoid?endVoid.width:0);
       const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
       const applByKey={};byWall[i].forEach(it=>applByKey[it.key]=it);
       order.forEach(e=>{
@@ -487,7 +488,7 @@ function initApp(){
           w.units.push({width:e.width,tall:false,label:e.legend?"+":null,legend:e.legend,filler:!!e.legend,editable:true,orderId:e.id,front:e.front||{kind:"door"}});
         }
       });
-      if(endClearance)w.units.push(endClearance);
+      if(endVoid)w.units.push(endVoid);
       if(endPiece)w.units.push(endPiece);
       let cum=0;
       w.units.forEach(u=>{u.x=cum;cum+=u.width});
@@ -707,7 +708,7 @@ function initApp(){
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm) et des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), un vide de 40 cm (aucun meuble, non commandé) est systématiquement laissé entre un angle et tout frigo/four/plaque/évier pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Chaque angle interne reçoit un fileur d'angle ${DIM.cornerFiller}×${DIM.cornerFiller} cm (intérieur) qui décale les deux lignes de meubles pour le débattement complet des portes — compté une fois comme pièce réelle, l'espace équivalent réservé sur l'autre mur reste du vide (non commandé). Hypothèses encore à confirmer : largeur des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
