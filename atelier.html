@@ -67,6 +67,9 @@
   .mod-del{color:#b42424}
   .mod-add-row{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
   .mod-add{border:1px dashed var(--line);background:#fff;border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;color:#3c4148}
+  .mod-row.selected{outline:2px solid var(--blue);background:#e2e9ff}
+  .mod-row.flash{background:#c9d6ff!important}
+  .planWrap svg [data-kind]{cursor:pointer}
   .plan-legend{padding:22px 26px;border-top:1px solid var(--line);background:var(--panel)}
   .plan-legend h3{font-size:15px;margin:0 0 4px}
   .plan-legend .sub{font-size:12.5px;color:var(--muted);margin:0 0 12px}
@@ -474,7 +477,7 @@ function initApp(){
   function addPlanLabel(parts,x,y,w,h,text,color,size){
     if(!text||w<34)return;
     const fs=size||Math.min(13,w/5.5);
-    parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="${fs}" fill="${color}" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif">${text}</text>`);
+    parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="${fs}" fill="${color}" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" pointer-events="none">${text}</text>`);
   }
   function dimLine(parts,x1,y1,x2,y2,label,side){
     // side: 'h' horizontal dimension (label above), 'v' vertical dimension (label to the left, rotated)
@@ -498,6 +501,24 @@ function initApp(){
     return{fill:fHex,text:txtOnFacade};
   }
 
+  /* --- sélection depuis le plan : cliquer un meuble le relie à sa ligne dans l'éditeur --- */
+  let pickedUnit=null; // {kind:'base'|'upper', wall, key, orderId}
+  function isPicked(kind,wall,key,orderId){
+    if(!pickedUnit||pickedUnit.kind!==kind||pickedUnit.wall!==wall)return false;
+    if(key!=null)return pickedUnit.key===key;
+    return pickedUnit.orderId===orderId&&orderId!=null;
+  }
+  function unitPickAttrs(kind,wall,u){
+    if(!u.editable)return "";
+    return u.key!=null
+      ?` data-kind="${kind}" data-wall="${wall}" data-appl-key="${u.key}"`
+      :` data-kind="${kind}" data-wall="${wall}" data-order-id="${u.orderId||""}"`;
+  }
+  function unitPickStroke(kind,wall,u,base){
+    const sel=u.key!=null?isPicked(kind,wall,u.key,null):isPicked(kind,wall,null,u.orderId);
+    return sel?{stroke:"#285cff",width:3}:{stroke:base,width:1.5};
+  }
+
   function renderTopView(walls,island,fHex,txtOnFacade){
     const D=DIM.baseDepth,pad=30,dimGap=22;
     const wall1Len=walls[0]?walls[0].length:0;
@@ -508,14 +529,16 @@ function initApp(){
     const svgH=bodyH+pad*2+dimGap+(island?island.depth+dimGap+40:0);
     const parts=[];
 
-    function drawRun(units,x0,y0,dx,dy,depthPx){
+    function drawRun(units,x0,y0,dx,dy,depthPx,wallIndex){
       // dx,dy: unit vector of travel direction (1,0) for horizontal, (0,1) for vertical
       let x=x0,y=y0;
       units.forEach(u=>{
         const len=u.width;
         const rw=dx?len:depthPx, rh=dx?depthPx:len;
         const {fill,text}=unitColor(u,fHex,txtOnFacade);
-        parts.push(`<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="${fill}" stroke="#b9bec4" stroke-width="1"/>`);
+        const attrs=wallIndex!=null?unitPickAttrs("base",wallIndex,u):"";
+        const {stroke,width}=wallIndex!=null?unitPickStroke("base",wallIndex,u,"#b9bec4"):{stroke:"#b9bec4",width:1};
+        parts.push(`<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="${fill}" stroke="${stroke}" stroke-width="${width}"${attrs}/>`);
         const label=u.label||(u.filler?"+":(len>=30?`${len}`:""));
         addPlanLabel(parts,x,y,rw,rh,label,text,10);
         x+=dx*len; y+=dy*len;
@@ -523,16 +546,16 @@ function initApp(){
     }
 
     // wall1: horizontal along top, back at y=pad
-    drawRun(walls[0]?walls[0].units:[],pad,pad,1,0,D);
+    drawRun(walls[0]?walls[0].units:[],pad,pad,1,0,D,0);
     dimLine(parts,pad,pad+D+10,pad+wall1Len,pad+D+10,`${wall1Len} cm`,"h");
 
     if(walls[1]){
-      drawRun(walls[1].units,pad,pad+D,0,1,D);
+      drawRun(walls[1].units,pad,pad+D,0,1,D,1);
       dimLine(parts,pad-10,pad+D,pad-10,pad+D+wall2Len,`${wall2Len} cm`,"v");
     }
     if(walls[2]){
       const xRight=pad+wall1Len-D;
-      drawRun(walls[2].units,xRight,pad+D,0,1,D);
+      drawRun(walls[2].units,xRight,pad+D,0,1,D,2);
       dimLine(parts,pad+wall1Len+10,pad+D,pad+wall1Len+10,pad+D+wall3Len,`${wall3Len} cm`,"v");
     }
 
@@ -550,7 +573,7 @@ function initApp(){
   }
 
   function renderElevation(walls,island,fHex,txtOnFacade,upperOn,upperH){
-    const groups=walls.map((w,i)=>({label:`Mur ${i+1} — ${w.length} cm`,length:w.length,units:w.units,upperUnits:w.upperUnits||[]}));
+    const groups=walls.map((w,i)=>({label:`Mur ${i+1} — ${w.length} cm`,length:w.length,units:w.units,upperUnits:w.upperUnits||[],wallIndex:i}));
     if(island)groups.push({label:`Îlot central — ${island.length} cm`,length:island.length,units:island.units,isIsland:true});
 
     const colH=DIM.plinth+DIM.baseDoorH+DIM.gapH+(upperOn?upperH:0);
@@ -571,15 +594,19 @@ function initApp(){
       let x=dimW;
       g.units.forEach(u=>{
         const w=u.width;
+        const wallIdx=g.isIsland?null:g.wallIndex;
+        const attrs=wallIdx!=null?unitPickAttrs("base",wallIdx,u):"";
         if(u.tall){
-          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="#b9bec4" stroke-width="1.5"/>`);
+          const{stroke,width}=wallIdx!=null?unitPickStroke("base",wallIdx,u,"#b9bec4"):{stroke:"#b9bec4",width:1.5};
+          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="${stroke}" stroke-width="${width}"${attrs}/>`);
           addPlanLabel(parts,x,top,w,colH,u.label,"#fff");
           // plinth line
           parts.push(`<line x1="${x}" y1="${floorY-DIM.plinth}" x2="${x+w}" y2="${floorY-DIM.plinth}" stroke="#555" stroke-width="0.7" stroke-dasharray="2,2"/>`);
         }else{
           const {fill,text}=unitColor(u,fHex,txtOnFacade);
           const baseY=floorY-baseTotalH;
-          parts.push(`<rect x="${x}" y="${baseY}" width="${w}" height="${DIM.baseDoorH}" fill="${fill}" stroke="#b9bec4" stroke-width="1.5"/>`);
+          const{stroke,width}=wallIdx!=null?unitPickStroke("base",wallIdx,u,"#b9bec4"):{stroke:"#b9bec4",width:1.5};
+          parts.push(`<rect x="${x}" y="${baseY}" width="${w}" height="${DIM.baseDoorH}" fill="${fill}" stroke="${stroke}" stroke-width="${width}"${attrs}/>`);
           addPlanLabel(parts,x,baseY,w,DIM.baseDoorH,u.label||(w>=30?`${w} cm`:""),text);
           parts.push(`<rect x="${x}" y="${floorY-DIM.plinth}" width="${w}" height="${DIM.plinth}" fill="#d8dadd" stroke="#b9bec4" stroke-width="1"/>`);
         }
@@ -588,7 +615,8 @@ function initApp(){
       if(upperOn&&!g.isIsland){
         g.upperUnits.forEach(u=>{
           const ux=dimW+u.x;
-          parts.push(`<rect x="${ux}" y="${top}" width="${u.width}" height="${upperH}" fill="${upperHex}" stroke="#b9bec4" stroke-width="1.5" opacity=".92"/>`);
+          const sel=isPicked("upper",g.wallIndex,null,u.orderId);
+          parts.push(`<rect x="${ux}" y="${top}" width="${u.width}" height="${upperH}" fill="${upperHex}" stroke="${sel?"#285cff":"#b9bec4"}" stroke-width="${sel?3:1.5}" opacity=".92" data-kind="upper" data-wall="${g.wallIndex}" data-order-id="${u.orderId||""}"/>`);
           addPlanLabel(parts,ux,top,u.width,upperH,u.width>=30?`${u.width} cm`:"",txtOnFacade);
         });
       }
@@ -643,11 +671,13 @@ function initApp(){
   function modRow(kind,i,idx,u,len){
     const isAppl=u.key!=null;
     const label=u.legend||u.label||`${u.width} cm`;
+    const sel=isAppl?isPicked(kind,i,u.key,null):isPicked(kind,i,null,u.orderId);
+    const idAttrs=isAppl?` data-appl-key="${u.key}"`:` data-order-id="${u.orderId||""}"`;
     const ctrls=isAppl
       ?`<span class="mod-fixed-w">${u.width} cm</span>`
       :`<input type="number" class="mod-width" data-kind="${kind}" data-wall="${i}" data-idx="${idx}" value="${u.width}" min="2" style="width:56px;height:26px;padding:0 4px;font-size:11px">
         <button class="mod-del" data-kind="${kind}" data-wall="${i}" data-idx="${idx}">✕</button>`;
-    return `<div class="mod-row">
+    return `<div class="mod-row${sel?" selected":""}" data-kind="${kind}" data-wall="${i}"${idAttrs}>
       <button class="mod-move" data-dir="-1" data-kind="${kind}" data-wall="${i}" data-idx="${idx}"${idx===0?" disabled":""}>◀</button>
       <span class="mod-label">${label}</span>
       ${ctrls}
@@ -656,7 +686,8 @@ function initApp(){
   }
   function modRowUpper(i,idx,e,len){
     const label=e.isGap?"Espace libre":(e.legend||`${e.width} cm`);
-    return `<div class="mod-row${e.isGap?" mod-gap":""}">
+    const sel=isPicked("upper",i,null,e.id);
+    return `<div class="mod-row${e.isGap?" mod-gap":""}${sel?" selected":""}" data-kind="upper" data-wall="${i}" data-order-id="${e.id}">
       <button class="mod-move" data-dir="-1" data-kind="upper" data-wall="${i}" data-idx="${idx}"${idx===0?" disabled":""}>◀</button>
       <span class="mod-label">${label}</span>
       <input type="number" class="mod-width" data-kind="upper" data-wall="${i}" data-idx="${idx}" value="${e.width}" min="2" style="width:56px;height:26px;padding:0 4px;font-size:11px">
@@ -697,7 +728,16 @@ function initApp(){
       const arr=kind==="upper"?upperOrder[i]:wallOrder[i];
       if(arr){
         const j=idx+dir;
-        if(j>=0&&j<arr.length){[arr[idx],arr[j]]=[arr[j],arr[idx]];updatePlan();}
+        if(j>=0&&j<arr.length){
+          if(kind==="upper"&&arr[j].isGap){
+            // moving onto a blank space consumes it (slides flush) instead of swapping with it —
+            // that's what "collé aux colonnes" needs: no leftover gap once the cabinet reaches it.
+            arr.splice(j,1);
+          }else{
+            [arr[idx],arr[j]]=[arr[j],arr[idx]];
+          }
+          updatePlan();
+        }
       }
       return;
     }
@@ -735,6 +775,31 @@ function initApp(){
       updatePlan();
     }
   });
+
+  /* --- cliquer un meuble dans le plan : le sélectionne et pointe vers sa ligne dans l'éditeur --- */
+  function bindPlanClicks(svgSel){
+    $(svgSel).addEventListener("click",e=>{
+      const t=e.target.closest("[data-kind]");
+      if(!t)return;
+      const kind=t.dataset.kind,wall=Number(t.dataset.wall);
+      const key=t.dataset.applKey||null;
+      const orderId=t.dataset.orderId||null;
+      pickedUnit={kind,wall,key,orderId};
+      updatePlan();
+      requestAnimationFrame(()=>{
+        const row=key
+          ?document.querySelector(`.mod-row[data-kind="${kind}"][data-wall="${wall}"][data-appl-key="${CSS.escape(key)}"]`)
+          :document.querySelector(`.mod-row[data-kind="${kind}"][data-wall="${wall}"][data-order-id="${CSS.escape(orderId||"")}"]`);
+        if(row){
+          row.scrollIntoView({behavior:"smooth",block:"center"});
+          row.classList.add("flash");
+          setTimeout(()=>row.classList.remove("flash"),900);
+        }
+      });
+    });
+  }
+  bindPlanClicks("#topSvg");
+  bindPlanClicks("#planSvg");
 
   /* --- extraction : plan pro numéroté (repères, cotes cumulées, icônes) --- */
   function assignNumbers(walls,island){
