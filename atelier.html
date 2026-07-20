@@ -469,13 +469,13 @@ function initApp(){
       const fe=freeEnds(i,layout);
       if(w.needsCornerFiller)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
       if(fe.start)w.units.push(endPieceFor(i,"start"));
-      if(w.hasCornerAtStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,label:null,front:{kind:"door"}});
+      if(w.hasCornerAtStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,isGap:true});
       const endPiece=fe.end?endPieceFor(i,"end"):null;
       // wall0's far end is also an internal corner (into wall3) in a U-shape only — needs the
       // same clearance guarantee as any wall-start corner, or a sensitive appliance pushed toward
       // that end has no room for its door to swing.
       const hasCornerAtEnd=i===0&&layout==="en U";
-      const endClearance=(hasCornerAtEnd&&byWall[i].some(it=>it.needsClearance))?{width:40,tall:false,label:null,front:{kind:"door"}}:null;
+      const endClearance=(hasCornerAtEnd&&byWall[i].some(it=>it.needsClearance))?{width:40,tall:false,isGap:true}:null;
       const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0)+(endClearance?endClearance.width:0);
       const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
       const applByKey={};byWall[i].forEach(it=>applByKey[it.key]=it);
@@ -519,6 +519,11 @@ function initApp(){
     if(u.isDishwasher)return{fill:"#c7cbd1",text:"#15171a"};
     if(u.isSink)return{fill:"#e7e7e7",text:"#15171a"};
     return{fill:fHex,text:txtOnFacade};
+  }
+  function drawVoid(parts,x,y,w,h){
+    // deliberate empty space (corner clearance) — no cabinet, no door, just floor/air.
+    parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#c7cbd1" stroke-width="1" stroke-dasharray="3,3"/>`);
+    if(w>=26)parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="9" fill="#9aa0a6" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" pointer-events="none">vide</text>`);
   }
   function drawCabinetFront(parts,x,y,w,h,front,stroke){
     if(!front||w<20||h<20)return;
@@ -579,6 +584,11 @@ function initApp(){
       units.forEach(u=>{
         const len=u.width;
         const rw=dx?len:depthPx, rh=dx?depthPx:len;
+        if(u.isGap){
+          drawVoid(parts,x,y,rw,rh);
+          x+=dx*len; y+=dy*len;
+          return;
+        }
         const {fill,text}=unitColor(u,fHex,txtOnFacade);
         const attrs=wallIndex!=null?unitPickAttrs("base",wallIndex,u):"";
         const {stroke,width}=wallIndex!=null?unitPickStroke("base",wallIndex,u,"#b9bec4"):{stroke:"#b9bec4",width:1};
@@ -641,6 +651,11 @@ function initApp(){
         const w=u.width;
         const wallIdx=g.isIsland?null:g.wallIndex;
         const attrs=wallIdx!=null?unitPickAttrs("base",wallIdx,u):"";
+        if(u.isGap){
+          drawVoid(parts,x,floorY-baseTotalH,w,baseTotalH);
+          x+=w;
+          return;
+        }
         if(u.tall){
           const{stroke,width}=wallIdx!=null?unitPickStroke("base",wallIdx,u,"#b9bec4"):{stroke:"#b9bec4",width:1.5};
           parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="${stroke}" stroke-width="${width}"${attrs}/>`);
@@ -683,7 +698,7 @@ function initApp(){
   }
   function computeCounts(walls,island){
     const counts={};
-    const add=(u,kind)=>{const key=(u.legend||`Meuble ${kind} ${u.width} cm`)+frontLabel(u.front);counts[key]=(counts[key]||0)+1};
+    const add=(u,kind)=>{if(u.isGap)return;const key=(u.legend||`Meuble ${kind} ${u.width} cm`)+frontLabel(u.front);counts[key]=(counts[key]||0)+1};
     walls.forEach(w=>{w.units.forEach(u=>add(u,"bas"));(w.upperUnits||[]).forEach(u=>add(u,"haut"))});
     if(island)island.units.forEach(u=>add(u,"bas"));
     credenceLines(walls).forEach(key=>{counts[key]=(counts[key]||0)+1});
@@ -692,7 +707,7 @@ function initApp(){
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm) et des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), un meuble bas de 40 cm est systématiquement inséré entre un angle et tout frigo/four/plaque pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm) et des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), un vide de 40 cm (aucun meuble, non commandé) est systématiquement laissé entre un angle et tout frigo/four/plaque/évier pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
@@ -905,7 +920,7 @@ function initApp(){
   function assignNumbers(walls,island){
     let n=1;
     walls.forEach(w=>{
-      w.units.forEach(u=>{u.num=n++});
+      w.units.forEach(u=>{if(!u.isGap)u.num=n++});
       (w.upperUnits||[]).forEach(u=>{u.num=n++});
     });
     if(island)island.units.forEach(u=>{u.num=n++});
@@ -985,6 +1000,12 @@ function initApp(){
     units.forEach(u=>{
       const len=u.width;
       const rw=dx?len:depthPx,rh=dx?depthPx:len;
+      if(u.isGap){
+        drawVoid(parts,x,y,rw,rh);
+        x+=dx*len;y+=dy*len;
+        bounds.push(bounds[bounds.length-1]+len);
+        return;
+      }
       const{fill,text}=unitColor(u,fHex,txtOnFacade);
       parts.push(`<rect x="${x}" y="${y}" width="${rw}" height="${rh}" fill="${fill}" stroke="#8a8f96" stroke-width="1"/>`);
       if(u.isSink)parts.push(iconSinkTop(x,y,rw,rh));
@@ -1043,6 +1064,11 @@ function initApp(){
       let x=dimW;
       g.units.forEach(u=>{
         const w=u.width;
+        if(u.isGap){
+          drawVoid(parts,x,floorY-baseTotalH,w,baseTotalH);
+          x+=w;
+          return;
+        }
         if(u.tall){
           parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="#8a8f96" stroke-width="1.5"/>`);
           if(u.key==="frigo")parts.push(iconFridge(x,top,w,colH));
@@ -1080,7 +1106,7 @@ function initApp(){
     const colH=DIM.plinth+DIM.baseDoorH+DIM.gapH+(upperOn?upperH:0);
     const rows=[];
     walls.forEach((w,i)=>{
-      w.units.forEach(u=>rows.push({...u,loc:`Mur ${i+1}`,typeLbl:u.tall?"Colonne":"Bas"}));
+      w.units.filter(u=>!u.isGap).forEach(u=>rows.push({...u,loc:`Mur ${i+1}`,typeLbl:u.tall?"Colonne":"Bas"}));
       (w.upperUnits||[]).forEach(u=>rows.push({...u,loc:`Mur ${i+1}`,typeLbl:"Haut"}));
     });
     if(island)island.units.forEach(u=>rows.push({...u,loc:"Îlot central",typeLbl:u.tall?"Colonne":"Bas"}));
