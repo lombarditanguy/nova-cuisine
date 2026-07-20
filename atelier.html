@@ -50,8 +50,23 @@
   .output{padding:0;overflow:hidden}
   .viewBlock{padding:20px;box-sizing:border-box;border-bottom:1px solid var(--line)}
   .viewBlock h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
-  .planWrap{width:100%;max-height:640px;overflow-y:auto;overflow-x:hidden}
+  .planWrap{width:100%}
   .planWrap svg{height:auto;display:block;max-width:100%}
+  .mod-wall{padding:16px 20px;border-bottom:1px solid var(--line)}
+  .mod-wall:last-child{border-bottom:0}
+  .mod-wall h4{font-size:13px;margin:0 0 8px}
+  .end-check{display:flex;align-items:center;gap:6px;font-size:12px;color:#3c4148;margin:0 0 8px}
+  .end-check input{width:auto;height:auto}
+  .mod-group-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:10px 0 6px}
+  .mod-row{display:flex;align-items:center;gap:6px;background:var(--panel);padding:6px 8px;border-radius:7px;margin-bottom:5px;font-size:12px}
+  .mod-row.mod-gap{background:repeating-linear-gradient(45deg,#eef1f8,#eef1f8 6px,#e3e7f0 6px,#e3e7f0 12px)}
+  .mod-label{flex:1}
+  .mod-fixed-w{font-size:11px;color:var(--muted)}
+  .mod-move,.mod-del{border:1px solid var(--line);background:#fff;border-radius:6px;width:24px;height:24px;font-size:11px;cursor:pointer;flex:none;padding:0}
+  .mod-move:disabled{opacity:.3;cursor:default}
+  .mod-del{color:#b42424}
+  .mod-add-row{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+  .mod-add{border:1px dashed var(--line);background:#fff;border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;color:#3c4148}
   .plan-legend{padding:22px 26px;border-top:1px solid var(--line);background:var(--panel)}
   .plan-legend h3{font-size:15px;margin:0 0 4px}
   .plan-legend .sub{font-size:12.5px;color:var(--muted);margin:0 0 12px}
@@ -128,8 +143,7 @@
       <div class="switch"><b>Meubles hauts</b><input id="upper" type="checkbox" checked></div>
       <div id="upperHeightBox">
         <label for="upperHeight">Hauteur meubles hauts (cm)</label><input id="upperHeight" type="number" value="70" min="30" max="120">
-        <p class="note" style="text-align:left;margin:10px 0 6px">Position par mur (collés aux colonnes par défaut — déplaçables) :</p>
-        <div id="upperRunBox"></div>
+        <p class="note" style="text-align:left;margin:10px 0 0">Le détail meuble par meuble (déplacer, échanger, supprimer) se fait dans le panneau "Modules" à droite, sous la vue de face.</p>
       </div>
       <label>Électroménager intégré</label><div class="choices wide" id="applianceChoices"></div>
 
@@ -147,9 +161,13 @@
         <h3>Vue de dessus</h3>
         <div class="planWrap" id="topWrap"><svg id="topSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
       </div>
-      <div class="viewBlock" style="border-bottom:0">
+      <div class="viewBlock">
         <h3>Vue de face (élévation, par mur)</h3>
         <div class="planWrap" id="planWrap"><svg id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      </div>
+      <div class="viewBlock" style="padding:0;border-bottom:0">
+        <h3 style="padding:20px 20px 0">Modules — sélectionner, déplacer, échanger, supprimer</h3>
+        <div id="moduleEditor"></div>
       </div>
       <div class="plan-legend" id="planLegend"></div>
     </div>
@@ -245,7 +263,9 @@ function initApp(){
     worktopY:90,    // sol -> dessus plan de travail
     gapH:70,        // vide plan de travail -> bas meubles hauts
     baseDepth:50,   // profondeur meuble bas (plan de travail 600, débord 50, mur 50)
-    cornerFiller:4  // fileur d'angle — largeur à confirmer avec vous, valeur d'attente
+    cornerFiller:4, // fileur d'angle — largeur à confirmer avec vous, valeur d'attente
+    finishFiller:2, // fileur de finition (extrémité contre un mur) — largeur d'attente
+    finishSide:2    // joue de finition (extrémité libre) — largeur affichée provisoire, profondeur réelle (+5cm mur) à préciser en liste de débit
   };
 
   function facadeHex(){return (DATA.facades.find(f=>f.n===selected.facades)||{}).h||"#f4f2ee"}
@@ -290,23 +310,61 @@ function initApp(){
       updatePlan();
     }));
   }
+  function standardBreakdown(remaining){
+    const mods=[];
+    for(const m of [90,80,60,50,40,30,20])while(remaining>=m){mods.push({width:m});remaining-=m}
+    if(remaining>1)mods.push({width:Math.round(remaining),legend:"Ajustement"});
+    return mods;
+  }
   function fillStandard(units,remaining){
-    for(const m of [90,80,60,50,40,30,20])while(remaining>=m){units.push({width:m,tall:false,label:null});remaining-=m}
-    if(remaining>1)units.push({width:Math.round(remaining),tall:false,label:"+",legend:"Ajustement",filler:true});
+    standardBreakdown(remaining).forEach(m=>units.push({width:m.width,tall:false,label:m.legend?"+":null,legend:m.legend,filler:!!m.legend}));
+  }
+  function genId(){return "m"+Math.random().toString(36).slice(2,9)}
+
+  /* --- ordre des meubles par mur : liste éditable (déplacer / échanger / supprimer) --- */
+  let wallOrder={};
+  let wallLastBudget={};
+  function reconcileWallOrder(i,wallLen,applItems,fixedUsed){
+    const budget=Math.max(0,wallLen-fixedUsed);
+    if(!wallOrder[i]){
+      const order=[];
+      applItems.forEach(it=>order.push({type:"appliance",key:it.key}));
+      const used0=applItems.reduce((s,it)=>s+it.width,0);
+      standardBreakdown(Math.max(0,budget-used0)).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend}));
+      wallOrder[i]=order;
+      wallLastBudget[i]=budget;
+      return order;
+    }
+    let order=wallOrder[i];
+    const applByKey={};applItems.forEach(it=>applByKey[it.key]=it);
+    const applKeys=new Set(applItems.map(it=>it.key));
+    order=order.filter(e=>e.type==="filler"||applKeys.has(e.key));
+    applItems.forEach(it=>{
+      if(!order.some(e=>e.type==="appliance"&&e.key===it.key))order.push({type:"appliance",key:it.key});
+    });
+    const grew=budget-(wallLastBudget[i]??budget);
+    if(grew>0)standardBreakdown(grew).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend}));
+    wallLastBudget[i]=budget;
+    wallOrder[i]=order;
+    return order;
   }
 
-  /* --- meubles hauts : course indépendante par mur, collée aux colonnes par défaut --- */
-  let upperRuns={};
-  function defaultUpperRun(units,wallLen){
-    let x=0,lastColEnd=0,hasCol=false;
-    units.forEach(u=>{if(u.tall){lastColEnd=x+u.width;hasCol=true}x+=u.width});
-    return hasCol?{start:lastColEnd,length:Math.max(0,wallLen-lastColEnd)}:{start:0,length:wallLen};
+  /* --- extrémités de mur : contre un mur (fileur de finition) ou libre (joue de finition) --- */
+  let wallEnds={};
+  function freeEnds(i,layout){
+    if(i===0)return{start:layout==="linéaire",end:layout!=="en U"};
+    return{start:false,end:true};
   }
-  function getUpperRun(i,units,wallLen){
-    const cur=upperRuns[i];
-    if(!cur||cur.auto)upperRuns[i]={...defaultUpperRun(units,wallLen),auto:true};
-    return upperRuns[i];
+  function endPieceFor(i,which){
+    const key=`${i}_${which}`;
+    if(wallEnds[key]==null)wallEnds[key]=true;
+    return wallEnds[key]
+      ?{width:DIM.finishFiller,tall:false,label:null,legend:"Fileur de finition",isFiller:true}
+      :{width:DIM.finishSide,tall:false,label:null,legend:"Joue de finition",isFiller:true};
   }
+
+  /* --- meubles hauts : liste éditable par mur, initialisée collée aux colonnes --- */
+  let upperOrder={};
   function upperSegments(units,run){
     if(!run||run.length<=0)return[];
     const rs=run.start,re=run.start+run.length;
@@ -335,43 +393,36 @@ function initApp(){
     if(remaining>1)mods.push({width:Math.round(remaining),legend:"Meuble haut — ajustement"});
     return mods;
   }
+  function seedUpperOrder(w){
+    let x=0,lastColEnd=0,hasCol=false;
+    w.units.forEach(u=>{if(u.tall){lastColEnd=x+u.width;hasCol=true}x+=u.width});
+    const start=hasCol?lastColEnd:0;
+    const run={start,length:Math.max(0,w.length-start)};
+    const segs=upperSegments(w.units,run);
+    const order=[];
+    if(run.start>0)order.push({id:genId(),width:run.start,isGap:true});
+    let cursor=run.start;
+    segs.forEach(seg=>{
+      if(seg.start>cursor)order.push({id:genId(),width:seg.start-cursor,isGap:true});
+      fillUpperModules(seg.length).forEach(m=>order.push({id:genId(),width:m.width,legend:m.legend}));
+      cursor=seg.start+seg.length;
+    });
+    if(w.length>cursor)order.push({id:genId(),width:w.length-cursor,isGap:true});
+    return order;
+  }
   function computeUpperUnits(walls,upperOn){
     walls.forEach((w,i)=>{
       if(!upperOn){w.upperUnits=[];return}
-      const run=getUpperRun(i,w.units,w.length);
-      const segs=upperSegments(w.units,run);
-      const mods=[];
-      segs.forEach(seg=>{
-        let x=seg.start;
-        fillUpperModules(seg.length).forEach(m=>{mods.push({...m,x});x+=m.width});
+      if(upperOrder[i]===undefined)upperOrder[i]=seedUpperOrder(w);
+      let x=0;
+      const out=[];
+      upperOrder[i].forEach(e=>{
+        if(!e.isGap)out.push({width:e.width,legend:e.legend,x,orderId:e.id});
+        x+=e.width;
       });
-      w.upperUnits=mods;
+      w.upperUnits=out;
     });
   }
-  function renderUpperRunUI(walls,upperOn){
-    if(!upperOn){$("#upperRunBox").innerHTML="";return}
-    $("#upperRunBox").innerHTML=walls.map((w,i)=>{
-      const r=getUpperRun(i,w.units,w.length);
-      return `<div class="place-row" style="flex-wrap:wrap;gap:8px">
-        <span>Mur ${i+1}</span>
-        <span style="display:flex;gap:6px;align-items:center">
-          <input type="number" class="upperStart" data-wall="${i}" value="${r.start}" min="0" max="${w.length}" title="Début (cm)" style="width:64px;height:30px;padding:0 6px;font-size:12px">
-          <span style="font-size:11px;color:var(--muted)">sur</span>
-          <input type="number" class="upperLen" data-wall="${i}" value="${r.length}" min="0" max="${w.length}" title="Longueur (cm)" style="width:64px;height:30px;padding:0 6px;font-size:12px">
-        </span>
-      </div>`;
-    }).join("");
-  }
-  $("#upperRunBox").addEventListener("input",e=>{
-    const t=e.target;
-    if(!t.matches(".upperStart,.upperLen"))return;
-    const i=Number(t.dataset.wall);
-    if(!upperRuns[i])upperRuns[i]={start:0,length:0};
-    upperRuns[i].auto=false;
-    if(t.classList.contains("upperStart"))upperRuns[i].start=Math.max(0,Number(t.value)||0);
-    else upperRuns[i].length=Math.max(0,Number(t.value)||0);
-    renderViews(computeState());
-  });
   function buildIslandPlan(){
     if(!$("#island").checked)return null;
     const width=Number($("#islandWidth").value)||0;
@@ -391,20 +442,32 @@ function initApp(){
     // cornerStart: an internal corner sits at the beginning of this wall's run (needs a filler + clearance
     // buffer before any appliance that needs door/drawer access — no fridge/hob/oven touching an angle).
     const walls=lens.map((len,i)=>({length:len,units:[],cornerStart:i===0?layout!=="linéaire":true}));
-    walls.forEach(w=>{if(w.cornerStart)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true})});
 
     const byWall=walls.map(()=>[]);
     items.forEach(it=>{
       const idx=Math.min(assignments[it.key]||0,walls.length-1);
       byWall[idx].push(it);
     });
+
     walls.forEach((w,i)=>{
-      if(w.cornerStart&&byWall[i].some(it=>it.needsClearance)){
-        w.units.push({width:40,tall:false,label:null});
-      }
-      byWall[i].forEach(it=>w.units.push(it));
-      const used=w.units.reduce((s,u)=>s+u.width,0);
-      fillStandard(w.units,Math.max(0,w.length-used));
+      w.units=[];
+      const fe=freeEnds(i,layout);
+      if(w.cornerStart)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
+      if(fe.start)w.units.push(endPieceFor(i,"start"));
+      if(w.cornerStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,label:null});
+      const endPiece=fe.end?endPieceFor(i,"end"):null;
+      const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0);
+      const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
+      const applByKey={};byWall[i].forEach(it=>applByKey[it.key]=it);
+      order.forEach(e=>{
+        if(e.type==="appliance"){
+          const it=applByKey[e.key];
+          if(it)w.units.push({...it,editable:true});
+        }else{
+          w.units.push({width:e.width,tall:false,label:e.legend?"+":null,legend:e.legend,filler:!!e.legend,editable:true});
+        }
+      });
+      if(endPiece)w.units.push(endPiece);
     });
     return walls;
   }
@@ -542,15 +605,15 @@ function initApp(){
 
   function computeCounts(walls,island){
     const counts={};
-    const add=u=>{const key=u.legend||`Meuble bas ${u.width} cm`;counts[key]=(counts[key]||0)+1};
-    walls.forEach(w=>{w.units.forEach(add);(w.upperUnits||[]).forEach(add)});
-    if(island)island.units.forEach(add);
+    const add=(u,kind)=>{const key=u.legend||`Meuble ${kind} ${u.width} cm`;counts[key]=(counts[key]||0)+1};
+    walls.forEach(w=>{w.units.forEach(u=>add(u,"bas"));(w.upperUnits||[]).forEach(u=>add(u,"haut"))});
+    if(island)island.units.forEach(u=>add(u,"bas"));
     return counts;
   }
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm), un meuble bas de 40 cm est systématiquement inséré entre un angle et tout frigo/four/plaque pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur des joues de finition sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} meuble(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Hypothèses à confirmer : largeur du fileur d'angle (${DIM.cornerFiller} cm) et des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), un meuble bas de 40 cm est systématiquement inséré entre un angle et tout frigo/four/plaque pour garantir le dégagement de porte, profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
@@ -572,9 +635,106 @@ function initApp(){
   function updatePlan(){
     const state=computeState();
     renderPlacementUI(state.items);
-    renderUpperRunUI(state.walls,state.upperOn);
+    renderModuleEditor(state.walls,state.upperOn);
     renderViews(state);
   }
+
+  /* --- éditeur de modules : déplacer / échanger / supprimer chaque meuble --- */
+  function modRow(kind,i,idx,u,len){
+    const isAppl=u.key!=null;
+    const label=u.legend||u.label||`${u.width} cm`;
+    const ctrls=isAppl
+      ?`<span class="mod-fixed-w">${u.width} cm</span>`
+      :`<input type="number" class="mod-width" data-kind="${kind}" data-wall="${i}" data-idx="${idx}" value="${u.width}" min="2" style="width:56px;height:26px;padding:0 4px;font-size:11px">
+        <button class="mod-del" data-kind="${kind}" data-wall="${i}" data-idx="${idx}">✕</button>`;
+    return `<div class="mod-row">
+      <button class="mod-move" data-dir="-1" data-kind="${kind}" data-wall="${i}" data-idx="${idx}"${idx===0?" disabled":""}>◀</button>
+      <span class="mod-label">${label}</span>
+      ${ctrls}
+      <button class="mod-move" data-dir="1" data-kind="${kind}" data-wall="${i}" data-idx="${idx}"${idx===len-1?" disabled":""}>▶</button>
+    </div>`;
+  }
+  function modRowUpper(i,idx,e,len){
+    const label=e.isGap?"Espace libre":(e.legend||`${e.width} cm`);
+    return `<div class="mod-row${e.isGap?" mod-gap":""}">
+      <button class="mod-move" data-dir="-1" data-kind="upper" data-wall="${i}" data-idx="${idx}"${idx===0?" disabled":""}>◀</button>
+      <span class="mod-label">${label}</span>
+      <input type="number" class="mod-width" data-kind="upper" data-wall="${i}" data-idx="${idx}" value="${e.width}" min="2" style="width:56px;height:26px;padding:0 4px;font-size:11px">
+      <button class="mod-del" data-kind="upper" data-wall="${i}" data-idx="${idx}">✕</button>
+      <button class="mod-move" data-dir="1" data-kind="upper" data-wall="${i}" data-idx="${idx}"${idx===len-1?" disabled":""}>▶</button>
+    </div>`;
+  }
+  function renderModuleEditor(walls,upperOn){
+    const layout=$("#layout").value;
+    $("#moduleEditor").innerHTML=walls.map((w,i)=>{
+      const fe=freeEnds(i,layout);
+      const endsHtml=[
+        fe.start?`<label class="end-check"><input type="checkbox" class="wallEndChk" data-key="${i}_start"${wallEnds[i+"_start"]!==false?" checked":""}> Extrémité gauche contre un mur (sinon : joue de finition)</label>`:"",
+        fe.end?`<label class="end-check"><input type="checkbox" class="wallEndChk" data-key="${i}_end"${wallEnds[i+"_end"]!==false?" checked":""}> Extrémité droite contre un mur (sinon : joue de finition)</label>`:""
+      ].join("");
+      const baseUnits=w.units.filter(u=>u.editable);
+      const baseRows=baseUnits.map((u,idx)=>modRow("base",i,idx,u,baseUnits.length)).join("");
+      const upperList=upperOrder[i]||[];
+      const upperRows=upperOn?upperList.map((e,idx)=>modRowUpper(i,idx,e,upperList.length)).join(""):"";
+      return `<div class="mod-wall">
+        <h4>Mur ${i+1} — ${w.length} cm</h4>
+        ${endsHtml}
+        <div class="mod-group-title">Meubles bas</div>
+        ${baseRows}
+        <div class="mod-add-row"><button class="mod-add" data-kind="baseMod" data-wall="${i}">+ Meuble bas</button></div>
+        ${upperOn?`<div class="mod-group-title">Meubles hauts</div>${upperRows}
+        <div class="mod-add-row">
+          <button class="mod-add" data-kind="upperMod" data-wall="${i}">+ Meuble haut</button>
+          <button class="mod-add" data-kind="upperGap" data-wall="${i}">+ Espace libre</button>
+        </div>`:""}
+      </div>`;
+    }).join("");
+  }
+  $("#moduleEditor").addEventListener("click",e=>{
+    const mv=e.target.closest(".mod-move");
+    if(mv){
+      const kind=mv.dataset.kind,i=Number(mv.dataset.wall),idx=Number(mv.dataset.idx),dir=Number(mv.dataset.dir);
+      const arr=kind==="upper"?upperOrder[i]:wallOrder[i];
+      if(arr){
+        const j=idx+dir;
+        if(j>=0&&j<arr.length){[arr[idx],arr[j]]=[arr[j],arr[idx]];updatePlan();}
+      }
+      return;
+    }
+    const del=e.target.closest(".mod-del");
+    if(del){
+      const kind=del.dataset.kind,i=Number(del.dataset.wall),idx=Number(del.dataset.idx);
+      const arr=kind==="upper"?upperOrder[i]:wallOrder[i];
+      if(arr){arr.splice(idx,1);updatePlan();}
+      return;
+    }
+    const add=e.target.closest(".mod-add");
+    if(add){
+      const i=Number(add.dataset.wall),kind=add.dataset.kind;
+      if(kind==="baseMod"){if(!wallOrder[i])wallOrder[i]=[];wallOrder[i].push({type:"filler",id:genId(),width:60})}
+      else if(kind==="upperMod"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:60})}
+      else if(kind==="upperGap"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:30,isGap:true})}
+      updatePlan();
+    }
+  });
+  $("#moduleEditor").addEventListener("input",e=>{
+    const inp=e.target.closest(".mod-width");
+    if(!inp)return;
+    const kind=inp.dataset.kind,i=Number(inp.dataset.wall),idx=Number(inp.dataset.idx);
+    const arr=kind==="upper"?upperOrder[i]:wallOrder[i];
+    if(arr&&arr[idx]){
+      arr[idx].width=Math.max(2,Number(inp.value)||2);
+      arr[idx].legend=undefined;
+      renderViews(computeState());
+    }
+  });
+  $("#moduleEditor").addEventListener("change",e=>{
+    const chk=e.target.closest(".wallEndChk");
+    if(chk){
+      wallEnds[chk.dataset.key]=chk.checked;
+      updatePlan();
+    }
+  });
 
   /* --- extraction : plan pro numéroté (repères, cotes cumulées, icônes) --- */
   function assignNumbers(walls,island){
@@ -759,7 +919,8 @@ function initApp(){
     if(island)island.units.forEach(u=>rows.push({...u,loc:"Îlot central",typeLbl:u.tall?"Colonne":"Bas"}));
     rows.sort((a,b)=>a.num-b.num);
     const trs=rows.map(u=>{
-      const desig=u.legend||u.label||(u.tall?`Meuble colonne ${u.width} cm`:`Meuble bas ${u.width} cm`);
+      const fallback=u.typeLbl==="Haut"?`Meuble haut ${u.width} cm`:u.typeLbl==="Colonne"?`Meuble colonne ${u.width} cm`:`Meuble bas ${u.width} cm`;
+      const desig=u.legend||u.label||fallback;
       return `<tr><td>${u.num}</td><td>${desig}</td><td>${u.width} cm</td><td>${u.typeLbl}</td><td>${u.loc}</td></tr>`;
     }).join("");
     return `<table class="nomen-table"><thead><tr><th>N°</th><th>Désignation</th><th>Largeur</th><th>Type</th><th>Emplacement</th></tr></thead><tbody>${trs}</tbody></table>`;
