@@ -336,8 +336,14 @@ function initApp(){
   // taper une largeur chiffre par chiffre (ex: 5 → 50 → 500) laissait des petits fillers
   // fragmentés à chaque étape intermédiaire, d'où les bandeaux qui apparaissaient au hasard.
   let wallOrder={};
+  let wallSignature={};
   function reconcileWallOrder(i,wallLen,applItems,fixedUsed){
     const budget=Math.max(0,wallLen-fixedUsed);
+    const sig=budget+"|"+applItems.map(it=>it.key).sort().join(",");
+    if(wallOrder[i]&&wallSignature[i]===sig)return wallOrder[i]; // nothing structural changed —
+    // reuse as-is: regenerating here would hand every untouched filler a fresh random id on
+    // every render (e.g. just clicking to select something), breaking click-to-select and any
+    // other id-based lookup even though nothing the user did should have moved anything.
     let order=wallOrder[i]||[];
     const applByKey={};applItems.forEach(it=>applByKey[it.key]=it);
     const applKeys=new Set(applItems.map(it=>it.key));
@@ -348,6 +354,7 @@ function initApp(){
     const used=order.reduce((s,e)=>s+(e.type==="appliance"?applByKey[e.key].width:e.width),0);
     standardBreakdown(Math.max(0,budget-used)).forEach(m=>order.push({type:"filler",id:genId(),width:m.width,legend:m.legend,front:{kind:"door"},auto:true}));
     wallOrder[i]=order;
+    wallSignature[i]=sig;
     return order;
   }
 
