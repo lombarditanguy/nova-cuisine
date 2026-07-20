@@ -366,29 +366,27 @@ function initApp(){
       :{width:DIM.finishSide,tall:false,label:null,legend:"Joue de finition",isFiller:true};
   }
 
-  /* --- meubles hauts : liste éditable par mur, initialisée collée aux colonnes --- */
+  /* --- meubles hauts : liste éditable par mur, dans l'espace libre (hors colonnes) --- */
+  // Une colonne (frigo/four) occupe toute la hauteur, y compris la zone des meubles hauts :
+  // ce n'est jamais un "espace" éditable/supprimable, juste une zone que le rendu contourne —
+  // un meuble haut ne peut donc jamais se superposer à une colonne, et se retrouve collé à la
+  // colonne par défaut, sans bandeau résiduel à gérer.
   let upperOrder={};
-  function upperSegments(units,run){
-    if(!run||run.length<=0)return[];
-    const rs=run.start,re=run.start+run.length;
-    const blocked=[];
+  function hardBlocks(units){
+    // columns (full height) and thin finishing strips (fileur/joue) are never usable
+    // upper-cabinet real estate — never editable, never a target for "collé aux colonnes".
+    const blocks=[];
     let x=0;
-    units.forEach(u=>{
-      if(u.isHob||u.isSink||u.isDishwasher){
-        const s=Math.max(x,rs),e=Math.min(x+u.width,re);
-        if(e>s)blocked.push([s,e]);
-      }
-      x+=u.width;
-    });
-    blocked.sort((a,b)=>a[0]-b[0]);
-    const segs=[];
-    let cur=rs;
-    blocked.forEach(([s,e])=>{
-      if(s>cur)segs.push({start:cur,length:s-cur});
-      cur=Math.max(cur,e);
-    });
-    if(re>cur)segs.push({start:cur,length:re-cur});
-    return segs.filter(s=>s.length>1);
+    units.forEach(u=>{if(u.tall||u.isFiller)blocks.push([x,x+u.width]);x+=u.width});
+    return blocks;
+  }
+  function advancePastBlocks(x,blocks){
+    let moved=true;
+    while(moved){
+      moved=false;
+      for(const [s,e] of blocks)if(x>=s&&x<e){x=e;moved=true}
+    }
+    return x;
   }
   function fillUpperModules(remaining){
     const mods=[];
@@ -397,31 +395,38 @@ function initApp(){
     return mods;
   }
   function seedUpperOrder(w){
-    let x=0,lastColEnd=0,hasCol=false;
-    w.units.forEach(u=>{if(u.tall){lastColEnd=x+u.width;hasCol=true}x+=u.width});
-    const start=hasCol?lastColEnd:0;
-    const run={start,length:Math.max(0,w.length-start)};
-    const segs=upperSegments(w.units,run);
-    const order=[];
-    if(run.start>0)order.push({id:genId(),width:run.start,isGap:true});
-    let cursor=run.start;
-    segs.forEach(seg=>{
-      if(seg.start>cursor)order.push({id:genId(),width:seg.start-cursor,isGap:true});
-      fillUpperModules(seg.length).forEach(m=>order.push({id:genId(),width:m.width,legend:m.legend}));
-      cursor=seg.start+seg.length;
+    // walk the wall skipping column widths entirely (they're never part of this list);
+    // hob/sink/dishwasher still get an editable "Espace libre" gap, same as before.
+    let fx=0;
+    const blockedSpans=[];
+    w.units.forEach(u=>{
+      if(u.tall||u.isFiller)return;
+      if(u.isHob||u.isSink||u.isDishwasher)blockedSpans.push([fx,fx+u.width]);
+      fx+=u.width;
     });
-    if(w.length>cursor)order.push({id:genId(),width:w.length-cursor,isGap:true});
+    const total=fx;
+    blockedSpans.sort((a,b)=>a[0]-b[0]);
+    const order=[];
+    let cursor=0;
+    blockedSpans.forEach(([s,e])=>{
+      if(s>cursor)fillUpperModules(s-cursor).forEach(m=>order.push({id:genId(),width:m.width,legend:m.legend}));
+      if(e>s)order.push({id:genId(),width:e-s,isGap:true});
+      cursor=Math.max(cursor,e);
+    });
+    if(total>cursor)fillUpperModules(total-cursor).forEach(m=>order.push({id:genId(),width:m.width,legend:m.legend}));
     return order;
   }
   function computeUpperUnits(walls,upperOn){
     walls.forEach((w,i)=>{
       if(!upperOn){w.upperUnits=[];return}
       if(upperOrder[i]===undefined)upperOrder[i]=seedUpperOrder(w);
-      let x=0;
+      const blocks=hardBlocks(w.units);
+      let x=advancePastBlocks(0,blocks);
       const out=[];
       upperOrder[i].forEach(e=>{
         if(!e.isGap)out.push({width:e.width,legend:e.legend,x,orderId:e.id});
         x+=e.width;
+        x=advancePastBlocks(x,blocks);
       });
       w.upperUnits=out;
     });
