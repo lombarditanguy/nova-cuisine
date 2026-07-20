@@ -471,7 +471,12 @@ function initApp(){
       if(fe.start)w.units.push(endPieceFor(i,"start"));
       if(w.hasCornerAtStart&&byWall[i].some(it=>it.needsClearance))w.units.push({width:40,tall:false,label:null,front:{kind:"door"}});
       const endPiece=fe.end?endPieceFor(i,"end"):null;
-      const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0);
+      // wall0's far end is also an internal corner (into wall3) in a U-shape only — needs the
+      // same clearance guarantee as any wall-start corner, or a sensitive appliance pushed toward
+      // that end has no room for its door to swing.
+      const hasCornerAtEnd=i===0&&layout==="en U";
+      const endClearance=(hasCornerAtEnd&&byWall[i].some(it=>it.needsClearance))?{width:40,tall:false,label:null,front:{kind:"door"}}:null;
+      const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0)+(endClearance?endClearance.width:0);
       const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
       const applByKey={};byWall[i].forEach(it=>applByKey[it.key]=it);
       order.forEach(e=>{
@@ -482,6 +487,7 @@ function initApp(){
           w.units.push({width:e.width,tall:false,label:e.legend?"+":null,legend:e.legend,filler:!!e.legend,editable:true,orderId:e.id,front:e.front||{kind:"door"}});
         }
       });
+      if(endClearance)w.units.push(endClearance);
       if(endPiece)w.units.push(endPiece);
       let cum=0;
       w.units.forEach(u=>{u.x=cum;cum+=u.width});
