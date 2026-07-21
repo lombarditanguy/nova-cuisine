@@ -500,6 +500,14 @@ function initApp(){
       });
       if(endVoid)w.units.push(endVoid);
       if(endPiece)w.units.push(endPiece);
+      // a thin filler/void next to a full-height column (frigo/four) has to run the column's
+      // full height too, or it leaves a gap above it instead of closing the corner cleanly.
+      w.units.forEach((u,idx)=>{
+        if((u.isFiller||u.isGap)&&!u.tall){
+          const prev=w.units[idx-1],next=w.units[idx+1];
+          if((prev&&prev.tall)||(next&&next.tall))u.tall=true;
+        }
+      });
       let cum=0;
       w.units.forEach(u=>{u.x=cum;cum+=u.width});
     });
@@ -663,11 +671,20 @@ function initApp(){
         const wallIdx=g.isIsland?null:g.wallIndex;
         const attrs=wallIdx!=null?unitPickAttrs("base",wallIdx,u):"";
         if(u.isGap){
-          drawVoid(parts,x,floorY-baseTotalH,w,baseTotalH);
+          const h=u.tall?colH:baseTotalH;
+          drawVoid(parts,x,floorY-h,w,h);
           x+=w;
           return;
         }
-        if(u.tall){
+        if(u.tall&&u.isFiller){
+          // a filler/joue running full height next to a column: same look as a base filler,
+          // just stretched — not the dark appliance-column styling.
+          const {fill,text}=unitColor(u,fHex,txtOnFacade);
+          const{stroke,width}=wallIdx!=null?unitPickStroke("base",wallIdx,u,"#b9bec4"):{stroke:"#b9bec4",width:1.5};
+          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="${fill}" stroke="${stroke}" stroke-width="${width}"${attrs}/>`);
+          addPlanLabel(parts,x,top,w,colH,u.label||"+",text);
+          parts.push(`<line x1="${x}" y1="${floorY-DIM.plinth}" x2="${x+w}" y2="${floorY-DIM.plinth}" stroke="#555" stroke-width="0.7" stroke-dasharray="2,2"/>`);
+        }else if(u.tall){
           const{stroke,width}=wallIdx!=null?unitPickStroke("base",wallIdx,u,"#b9bec4"):{stroke:"#b9bec4",width:1.5};
           parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="${stroke}" stroke-width="${width}"${attrs}/>`);
           addPlanLabel(parts,x,top,w,colH,u.label,"#fff");
@@ -1117,11 +1134,17 @@ function initApp(){
       g.units.forEach(u=>{
         const w=u.width;
         if(u.isGap){
-          drawVoid(parts,x,floorY-baseTotalH,w,baseTotalH);
+          const h=u.tall?colH:baseTotalH;
+          drawVoid(parts,x,floorY-h,w,h);
           x+=w;
           return;
         }
-        if(u.tall){
+        if(u.tall&&u.isFiller){
+          const {fill,text}=unitColor(u,fHex,txtOnFacade);
+          parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="${fill}" stroke="#8a8f96" stroke-width="1.5"/>`);
+          addPlanLabel(parts,x,top,w,colH,u.label||"+",text);
+          parts.push(`<line x1="${x}" y1="${floorY-DIM.plinth}" x2="${x+w}" y2="${floorY-DIM.plinth}" stroke="#555" stroke-width="0.7" stroke-dasharray="2,2"/>`);
+        }else if(u.tall){
           parts.push(`<rect x="${x}" y="${top}" width="${w}" height="${colH}" fill="#2a2c31" stroke="#8a8f96" stroke-width="1.5"/>`);
           if(u.key==="frigo")parts.push(iconFridge(x,top,w,colH));
           else if(u.key==="four")parts.push(iconOven(x,top,w,colH));
@@ -1158,15 +1181,15 @@ function initApp(){
     const colH=DIM.plinth+DIM.baseDoorH+DIM.gapH+(upperOn?upperH:0);
     const rows=[];
     walls.forEach((w,i)=>{
-      w.units.filter(u=>!u.isGap).forEach(u=>rows.push({...u,loc:`Mur ${i+1}`,typeLbl:u.tall?"Colonne":"Bas"}));
+      w.units.filter(u=>!u.isGap).forEach(u=>rows.push({...u,loc:`Mur ${i+1}`,typeLbl:u.tall&&!u.isFiller?"Colonne":"Bas"}));
       (w.upperUnits||[]).forEach(u=>rows.push({...u,loc:`Mur ${i+1}`,typeLbl:"Haut"}));
     });
-    if(island)island.units.forEach(u=>rows.push({...u,loc:"Îlot central",typeLbl:u.tall?"Colonne":"Bas"}));
+    if(island)island.units.forEach(u=>rows.push({...u,loc:"Îlot central",typeLbl:u.tall&&!u.isFiller?"Colonne":"Bas"}));
     rows.sort((a,b)=>a.num-b.num);
     const trs=rows.map(u=>{
       const fallback=u.typeLbl==="Haut"?`Meuble haut ${u.width} cm`:u.typeLbl==="Colonne"?`Meuble colonne ${u.width} cm`:`Meuble bas ${u.width} cm`;
       const desig=(u.legend||u.label||fallback)+frontLabel(u.front);
-      const h=u.typeLbl==="Haut"?upperH:u.typeLbl==="Colonne"?colH:DIM.baseH;
+      const h=u.typeLbl==="Haut"?upperH:u.tall?colH:DIM.baseH;
       const d=u.typeLbl==="Haut"?DIM.upperDepth:DIM.baseDepth;
       const loc=u.x!=null?`${u.loc} — à ${u.x} cm`:u.loc;
       return `<tr><td>${u.num}</td><td>${desig}</td><td>${u.width} cm</td><td>${d} cm</td><td>${h} cm</td><td>${u.typeLbl}</td><td>${loc}</td></tr>`;
