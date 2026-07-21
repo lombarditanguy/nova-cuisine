@@ -360,9 +360,23 @@ function initApp(){
 
   /* --- extrémités de mur : contre un mur (fileur de finition) ou libre (joue de finition) --- */
   let wallEnds={};
+  // Un angle interne (mur1↔mur2, ou mur1↔mur3 en U) est réel par défaut (fileur d'angle des
+  // deux murs qui se rejoignent) mais peut être décoché : les deux murs traitent alors leur
+  // extrémité comme libre, chacune avec son propre choix fileur de finition / joue de finition.
+  let cornerLinks={};
+  function cornerReal(key){return cornerLinks[key]!==false}
+  function wallStartCornerReal(i,layout){
+    if(i===0)return layout!=="linéaire"&&cornerReal("c01");
+    if(i===1)return cornerReal("c01");
+    return cornerReal("c02");
+  }
   function freeEnds(i,layout){
-    if(i===0)return{start:layout==="linéaire",end:layout!=="en U"};
-    return{start:false,end:true};
+    const startReal=wallStartCornerReal(i,layout);
+    if(i===0){
+      const endReal=layout==="en U"&&cornerReal("c02");
+      return{start:!startReal,end:!endReal};
+    }
+    return{start:!startReal,end:true};
   }
   function endPieceFor(i,which){
     const key=`${i}_${which}`;
@@ -467,7 +481,10 @@ function initApp(){
     // sticking into the room) plus the fileur plus its own matching clearance, and since there's
     // no cabinet to carry that clearance, the whole span sits empty (void) on this wall only.
     const cornerVoidWidth=DIM.baseDepth+DIM.cornerFiller*2;
-    const walls=lens.map((len,i)=>({length:len,units:[],hasCornerAtStart:i===0?layout!=="linéaire":true,needsCornerFiller:i>0}));
+    const walls=lens.map((len,i)=>{
+      const startReal=wallStartCornerReal(i,layout);
+      return{length:len,units:[],hasCornerAtStart:i===0&&startReal,needsCornerFiller:i>0&&startReal};
+    });
 
     const byWall=walls.map(()=>[]);
     items.forEach(it=>{
@@ -485,7 +502,7 @@ function initApp(){
       // wall0's far end is also an internal corner (into wall3) in a U-shape only — wall3 already
       // claims the real Fileur d'angle piece for that corner (needsCornerFiller), so wall0's end
       // just needs the matching void.
-      const hasCornerAtEnd=i===0&&layout==="en U";
+      const hasCornerAtEnd=i===0&&layout==="en U"&&cornerReal("c02");
       const endVoid=hasCornerAtEnd?{width:cornerVoidWidth,tall:false,isGap:true}:null;
       const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0)+(endVoid?endVoid.width:0);
       const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
@@ -735,7 +752,7 @@ function initApp(){
   function renderPlanLegend(counts,upperOn,upperH){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Chaque angle interne reçoit un fileur d'angle réel de ${DIM.cornerFiller} cm de large sur un des deux murs (ses meubles démarrent juste après). Sur l'autre mur, qui n'a pas de fileur réel, aucun meuble n'est posé sur ${DIM.baseDepth+DIM.cornerFiller*2} cm (profondeur du meuble perpendiculaire ${DIM.baseDepth} cm + fileur ${DIM.cornerFiller} cm + dégagement propre ${DIM.cornerFiller} cm) pour que les portes des deux lignes s'ouvrent entièrement. Hypothèses encore à confirmer : largeur des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Par défaut, chaque angle interne reçoit un fileur d'angle réel de ${DIM.cornerFiller} cm de large sur un des deux murs (ses meubles démarrent juste après). Sur l'autre mur, qui n'a pas de fileur réel, aucun meuble n'est posé sur ${DIM.baseDepth+DIM.cornerFiller*2} cm (profondeur du meuble perpendiculaire ${DIM.baseDepth} cm + fileur ${DIM.cornerFiller} cm + dégagement propre ${DIM.cornerFiller} cm) pour que les portes des deux lignes s'ouvrent entièrement. Décochez "Angle réel" dans les modules du Mur 1 si les deux murs ne se rejoignent pas vraiment : chaque mur redevient une extrémité libre indépendante (fileur ou joue de finition, à vous de choisir). Hypothèses encore à confirmer : largeur des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
@@ -800,6 +817,10 @@ function initApp(){
     const layout=$("#layout").value;
     $("#moduleEditor").innerHTML=walls.map((w,i)=>{
       const fe=freeEnds(i,layout);
+      const cornerHtml=i===0?[
+        layout!=="linéaire"?`<label class="end-check"><input type="checkbox" class="cornerLinkChk" data-key="c01"${cornerReal("c01")?" checked":""}> Angle réel avec Mur 2 (sinon : extrémités libres indépendantes)</label>`:"",
+        layout==="en U"?`<label class="end-check"><input type="checkbox" class="cornerLinkChk" data-key="c02"${cornerReal("c02")?" checked":""}> Angle réel avec Mur 3 (sinon : extrémités libres indépendantes)</label>`:""
+      ].join(""):"";
       const endsHtml=[
         fe.start?`<label class="end-check"><input type="checkbox" class="wallEndChk" data-key="${i}_start"${wallEnds[i+"_start"]!==false?" checked":""}> Extrémité gauche contre un mur (sinon : joue de finition)</label>`:"",
         fe.end?`<label class="end-check"><input type="checkbox" class="wallEndChk" data-key="${i}_end"${wallEnds[i+"_end"]!==false?" checked":""}> Extrémité droite contre un mur (sinon : joue de finition)</label>`:""
@@ -810,6 +831,7 @@ function initApp(){
       const upperRows=upperOn?upperList.map((e,idx)=>modRowUpper(i,idx,e,upperList.length)).join(""):"";
       return `<div class="mod-wall">
         <h4>Mur ${i+1} — ${w.length} cm</h4>
+        ${cornerHtml}
         ${endsHtml}
         <div class="mod-group-title">Meubles bas</div>
         ${baseRows}
@@ -872,6 +894,12 @@ function initApp(){
     }
   });
   $("#moduleEditor").addEventListener("change",e=>{
+    const cornerChk=e.target.closest(".cornerLinkChk");
+    if(cornerChk){
+      cornerLinks[cornerChk.dataset.key]=cornerChk.checked;
+      updatePlan();
+      return;
+    }
     const chk=e.target.closest(".wallEndChk");
     if(chk){
       wallEnds[chk.dataset.key]=chk.checked;
