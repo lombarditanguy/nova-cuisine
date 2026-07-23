@@ -274,6 +274,9 @@ function initApp(){
     gapH:60,        // vide plan de travail -> bas meubles hauts (norme pro courante : 55-60 cm)
     baseDepth:60,   // profondeur meuble bas (standard français/européen : 56-60 cm, 60 en référence)
     blindCornerWidth:90, // meuble d'angle aveugle — largeur de face standard (90-105 cm selon fabricants, 90 le plus courant)
+    cornerFiller:5, // fileur d'angle — vendu avec le meuble d'angle aveugle (kit meuble + fileur +
+                    // aménagement intérieur) : le caisson est reculé de ce fileur par rapport à
+                    // l'angle réel, et la porte est charnière dessus (charnières 170°) pour le débattement
     finishFiller:5, // fileur de finition (extrémité contre un mur) — dégagement du débattement de
                     // porte/poignée contre une paroi perpendiculaire
     finishSide:2,   // joue de finition (extrémité libre) — panneau de finition plaqué, épaisseur de panneau
@@ -324,9 +327,19 @@ function initApp(){
     }));
   }
   const STANDARD_WIDTHS=[120,100,90,80,60,50,45,40,30,15]; // largeurs catalogue standard (menuiserie française/européenne)
+  const MIN_USABLE=STANDARD_WIDTHS[STANDARD_WIDTHS.length-1]; // 15 cm — plus petit caisson standard
   function standardBreakdown(remaining){
     const mods=[];
-    for(const m of STANDARD_WIDTHS)while(remaining>=m){mods.push({width:m});remaining-=m}
+    // n'utilise un caisson standard que si le reste après est nul OU encore assez large pour un
+    // autre caisson standard — sinon on laisserait un fileur de 15cm à côté d'un autre petit
+    // ajustement de quelques cm : deux chutes qui ne se voient jamais chez un pro. Le reste passe
+    // toujours en un seul ajustement final, jamais démultiplié.
+    for(const m of STANDARD_WIDTHS){
+      while(remaining>=m&&(remaining-m===0||remaining-m>=MIN_USABLE)){
+        mods.push({width:m});
+        remaining-=m;
+      }
+    }
     if(remaining>1)mods.push({width:Math.round(remaining),legend:"Ajustement"});
     return mods;
   }
@@ -438,7 +451,12 @@ function initApp(){
   }
   function fillUpperModules(remaining){
     const mods=[];
-    for(const m of STANDARD_WIDTHS)while(remaining>=m){mods.push({width:m,legend:`Meuble haut ${m} cm`});remaining-=m}
+    for(const m of STANDARD_WIDTHS){
+      while(remaining>=m&&(remaining-m===0||remaining-m>=MIN_USABLE)){
+        mods.push({width:m,legend:`Meuble haut ${m} cm`});
+        remaining-=m;
+      }
+    }
     if(remaining>1)mods.push({width:Math.round(remaining),legend:"Meuble haut — ajustement"});
     return mods;
   }
@@ -515,8 +533,12 @@ function initApp(){
     walls.forEach((w,i)=>{
       w.units=[];
       const fe=freeEnds(i,layout);
-      if(w.needsCornerFiller)w.units.push(cornerCabinetUnit(cornerKeyForWall(i)));
-      else if(w.hasCornerAtStart)w.units.push({width:DIM.baseDepth,tall:false,isGap:true,isBlindZone:true});
+      if(w.needsCornerFiller){
+        // real kit: cabinet + fileur d'angle + aménagement intérieur, sold and installed together —
+        // the cabinet is set back from the true corner by the fileur, and its door is hinged onto it.
+        w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
+        w.units.push(cornerCabinetUnit(cornerKeyForWall(i)));
+      }else if(w.hasCornerAtStart)w.units.push({width:DIM.baseDepth,tall:false,isGap:true,isBlindZone:true});
       if(fe.start)w.units.push(endPieceFor(i,"start"));
       const endPiece=fe.end?endPieceFor(i,"end"):null;
       // wall0's far end is also an internal corner (into wall3) in a U-shape only — wall3 already
@@ -800,7 +822,7 @@ function initApp(){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
     const warnHtml=warnings&&warnings.length?`<ul class="warn-list">${warnings.map(w=>`<li>⚠ ${w}</li>`).join("")}</ul>`:"";
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p>${warnHtml}<p class="assum">Par défaut, chaque angle interne reçoit un seul meuble d'angle aveugle réel (largeur de face réglable, ${DIM.blindCornerWidth} cm par défaut) sur un des deux murs. Sur l'autre mur, son retour occupe ${DIM.baseDepth} cm en "angle mort" : du caisson bien réel, mais qui ne se commande pas (aucun meuble ne peut y être posé). Décochez "Angle réel" dans les modules du Mur 1 si les deux murs ne se rejoignent pas vraiment : chaque mur redevient une extrémité libre indépendante (fileur ou joue de finition, à vous de choisir). Dimensions basées sur les standards menuiserie française/européenne : profondeur meuble bas ${DIM.baseDepth} cm, profondeur meuble haut ${DIM.upperDepth} cm, vide plan de travail → meubles hauts ${DIM.gapH} cm, plinthe ${DIM.plinth} cm. Profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm) — une colonne réfrigérateur réelle peut être plus profonde, à vérifier à la commande. Le détail fin des jeux de portes (2 mm), du +3 mm charnière et de la profondeur réelle de découpe des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p>${warnHtml}<p class="assum">Par défaut, chaque angle interne reçoit un seul kit meuble d'angle aveugle réel (fileur d'angle ${DIM.cornerFiller} cm + caisson, largeur de face réglable, ${DIM.blindCornerWidth} cm par défaut) sur un des deux murs. Sur l'autre mur, son retour occupe ${DIM.baseDepth} cm en "angle mort" : du caisson bien réel, mais qui ne se commande pas (aucun meuble ne peut y être posé). Décochez "Angle réel" dans les modules du Mur 1 si les deux murs ne se rejoignent pas vraiment : chaque mur redevient une extrémité libre indépendante (fileur ou joue de finition, à vous de choisir). Dimensions basées sur les standards menuiserie française/européenne : profondeur meuble bas ${DIM.baseDepth} cm, profondeur meuble haut ${DIM.upperDepth} cm, vide plan de travail → meubles hauts ${DIM.gapH} cm, plinthe ${DIM.plinth} cm. Profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm) — une colonne réfrigérateur réelle peut être plus profonde, à vérifier à la commande. Le détail fin des jeux de portes (2 mm), du +3 mm charnière et de la profondeur réelle de découpe des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
