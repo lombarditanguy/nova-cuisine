@@ -99,8 +99,8 @@ function buildPrompt(config) {
       }${config.island.seating ? " Add a bar overhang with counter-height seating on one side." : ""}`
     : "Do not add any kitchen island; keep the floor space open.";
 
-  const corner = config.corner
-    ? `Corner cabinet solution: ${config.corner}.`
+  const corner = /en l\b|en u\b/i.test(config.layout || "")
+    ? "Corner solution: a single standard blind corner base cabinet (meuble d'angle aveugle) at each inside corner — one visible door on one wall, roughly 90 cm wide, with its blind, inaccessible return tucked behind the perpendicular run. Not a lazy susan, not a carousel, not two separate cabinet doors meeting bare at the corner."
     : "";
 
   const lighting = config.lighting && (config.lighting.spots || config.lighting.led)

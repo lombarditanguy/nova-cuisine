@@ -424,7 +424,6 @@
         <select id="layout"><option value="linéaire">Linéaire</option><option value="en L">En L</option><option value="en U">En U</option></select>
         <div class="row"><div><label for="wall1">Mur principal (cm)</label><input id="wall1" type="number" value="360" min="120"></div><div id="wall2box" class="hidden"><label for="wall2">Deuxième mur (cm)</label><input id="wall2" type="number" value="240" min="120"></div></div>
         <div id="wall3box" class="hidden"><label for="wall3">Troisième mur (cm)</label><input id="wall3" type="number" value="200" min="120"></div>
-        <div id="cornerBox" class="hidden"><label>Solution d'angle</label><div class="choices" id="cornerChoices"></div></div>
 
         <h2 class="section"><span class="n">2</span>Îlot central</h2>
         <div class="switch"><b>Ajouter un îlot central</b><input id="island" type="checkbox"></div>
@@ -600,7 +599,6 @@
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 
 const DATA={
-  corner:["Meuble d'angle classique","Plateau tournant (carrousel)","Coulissant à l'anglaise"],
   doorStyles:["Unie","Avec cadre (shaker)","Rainurée verticale","Sans poignée (push)"],
   appliances:["Four","Four à vapeur","Plaque induction","Hotte aspirante","Réfrigérateur","Lave-vaisselle","Micro-ondes","Cave à vin"],
   facades:[{n:"Blanc mat",h:"#f4f2ee"},{n:"Chêne naturel",h:"#c9a06a"},{n:"Noir mat",h:"#1c1c1c"},{n:"Vert sauge",h:"#8a9a7c"},{n:"Bleu nuit",h:"#28344a"},{n:"Terracotta",h:"#c1694a"}],
@@ -624,7 +622,6 @@ let selected={
   plinth:"Assortie aux façades",
   sink:"Sous plan inox",
   faucet:"Noir mat",
-  corner:"Meuble d'angle classique",
   wallSide:null
 };
 let photoData=null;
@@ -659,7 +656,6 @@ function bindChoice(containerId,key,{multi=false}={}){
   });
 }
 
-renderChoices("#cornerChoices",DATA.corner,{current:selected.corner});
 renderChoices("#doorStyleChoices",DATA.doorStyles,{current:selected.doorStyle});
 renderChoices("#applianceChoices",DATA.appliances,{multi:true,current:selected.appliances});
 renderChoices("#facadesChoices",DATA.facades,{current:selected.facades});
@@ -671,7 +667,6 @@ renderChoices("#plinthChoices",DATA.plinth,{current:selected.plinth});
 renderChoices("#sinkChoices",DATA.sink,{current:selected.sink});
 renderChoices("#faucetChoices",DATA.faucet,{current:selected.faucet});
 
-bindChoice("#cornerChoices","corner");
 bindChoice("#doorStyleChoices","doorStyle");
 bindChoice("#applianceChoices","appliances",{multi:true});
 bindChoice("#facadesChoices","facades");
@@ -687,7 +682,6 @@ function layouts(){
   const l=$("#layout").value;
   $("#wall2box").classList.toggle("hidden",l==="linéaire");
   $("#wall3box").classList.toggle("hidden",l!=="en U");
-  $("#cornerBox").classList.toggle("hidden",l==="linéaire");
   updateWallPickUI();
   updateEstimate();
 }
@@ -798,7 +792,6 @@ $("#generate").onclick=async()=>{
       wall1:$("#wall1").value,
       wall2:$("#layout").value!=="linéaire"?$("#wall2").value:null,
       wall3:$("#layout").value==="en U"?$("#wall3").value:null,
-      corner:$("#layout").value!=="linéaire"?selected.corner:null,
       wallSide:$("#layout").value==="linéaire"?selected.wallSide:null,
       island:$("#island").checked?{
         width:$("#islandWidth").value,depth:$("#islandDepth").value,
@@ -853,7 +846,7 @@ $("#leadForm").addEventListener("submit",e=>{
   const phone=$("#leadPhone").value.trim();
   const message=$("#leadMessage").value.trim();
   const configLines=[
-    `Implantation : ${$("#layout").value}${selected.corner&&$("#layout").value!=="linéaire"?` (angle : ${selected.corner})`:""}`,
+    `Implantation : ${$("#layout").value}`,
     $("#island").checked?`Îlot central : ${$("#islandWidth").value}x${$("#islandDepth").value} cm`:"",
     `Style de porte : ${selected.doorStyle}`,
     `Façades : ${selected.facades} · Plan de travail : ${selected.worktop} · Crédence : ${selected.credence}`,
