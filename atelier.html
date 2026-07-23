@@ -273,10 +273,9 @@ function initApp(){
     worktopY:90,    // sol -> dessus plan de travail (hauteur standard usuelle)
     gapH:60,        // vide plan de travail -> bas meubles hauts (norme pro courante : 55-60 cm)
     baseDepth:60,   // profondeur meuble bas (standard français/européen : 56-60 cm, 60 en référence)
-    cornerFiller:5, // fileur d'angle — 50mm, décale les deux lignes de meubles pour le débattement des portes
-    finishFiller:5, // fileur de finition (extrémité contre un mur) — même fonction que le fileur d'angle
-                    // (dégagement du débattement de porte/poignée contre une paroi perpendiculaire),
-                    // donc même largeur
+    blindCornerWidth:90, // meuble d'angle aveugle — largeur de face standard (90-105 cm selon fabricants, 90 le plus courant)
+    finishFiller:5, // fileur de finition (extrémité contre un mur) — dégagement du débattement de
+                    // porte/poignée contre une paroi perpendiculaire
     finishSide:2,   // joue de finition (extrémité libre) — panneau de finition plaqué, épaisseur de panneau
     baseH:90,       // hauteur meuble bas (plinthe + porte)
     upperDepth:35   // profondeur meuble haut — standard 30-35 cm
@@ -366,15 +365,28 @@ function initApp(){
 
   /* --- extrémités de mur : contre un mur (fileur de finition) ou libre (joue de finition) --- */
   let wallEnds={};
-  // Un angle interne (mur1↔mur2, ou mur1↔mur3 en U) est réel par défaut (fileur d'angle des
-  // deux murs qui se rejoignent) mais peut être décoché : les deux murs traitent alors leur
-  // extrémité comme libre, chacune avec son propre choix fileur de finition / joue de finition.
+  // Un angle interne (mur1↔mur2, ou mur1↔mur3 en U) est réel par défaut (un seul meuble d'angle
+  // aveugle pour les deux murs qui se rejoignent) mais peut être décoché : les deux murs traitent
+  // alors leur extrémité comme libre, chacune avec son propre choix fileur de finition / joue de
+  // finition.
   let cornerLinks={};
   function cornerReal(key){return cornerLinks[key]!==false}
   function wallStartCornerReal(i,layout){
     if(i===0)return layout!=="linéaire"&&cornerReal("c01");
     if(i===1)return cornerReal("c01");
     return cornerReal("c02");
+  }
+  function cornerKeyForWall(i){return i===1?"c01":"c02"}
+  let cornerCabinetWidth={};
+  function cornerCabWidth(key){return cornerCabinetWidth[key]||DIM.blindCornerWidth}
+  function cornerCabinetUnit(key){
+    // fixed piece like the finishing fillers (not part of wallOrder, not draggable/reorderable) —
+    // its own width control lives next to the "Angle réel" checkbox in the module editor.
+    return{width:cornerCabWidth(key),tall:false,label:"Angle",legend:"Meuble d'angle aveugle",isFiller:false,isCornerCabinet:true,front:{kind:"door"}};
+  }
+  function cornerCabWidthRow(key,otherWallLabel){
+    if(!cornerReal(key))return "";
+    return `<div class="corner-cab-row"><label style="margin:2px 0 10px;display:flex;align-items:center;gap:8px;font-size:12px;color:#3c4148;text-transform:none;font-weight:400;letter-spacing:normal">Meuble d'angle aveugle (angle avec ${otherWallLabel}) — largeur face visible <input type="number" class="cornerCabWidthInp" data-key="${key}" value="${cornerCabWidth(key)}" min="60" max="120" style="width:64px;height:28px;padding:0 6px;font-size:12px;border:1px solid var(--line);border-radius:6px"> cm</label></div>`;
   }
   function freeEnds(i,layout){
     const startReal=wallStartCornerReal(i,layout);
@@ -485,15 +497,10 @@ function initApp(){
     const lens=[Number($("#wall1").value)||0];
     if(layout!=="linéaire")lens.push(Number($("#wall2").value)||0);
     if(layout==="en U")lens.push(Number($("#wall3").value)||0);
-    // Every internal corner needs a 50mm-wide fileur d'angle: a thin real strip, physically
-    // installed on ONE of the two walls (needsCornerFiller, i>0) and counted once there — its
-    // cabinets start right after it, only cleared by the fileur itself (plus fine door/handle
-    // clearance, not modeled here). The OTHER wall (hasCornerAtStart, i===0) has no real piece
-    // at its corner, so nothing stops its first cabinet's façade from ramming straight into the
-    // side of the perpendicular wall's cabinets — it has to clear their full DEPTH (baseDepth cm
-    // sticking into the room) plus the fileur plus its own matching clearance, and since there's
-    // no cabinet to carry that clearance, the whole span sits empty (void) on this wall only.
-    const cornerVoidWidth=DIM.baseDepth+DIM.cornerFiller*2;
+    // Every internal corner gets a single real meuble d'angle aveugle (blind corner cabinet): one
+    // cabinet, door on ONE wall (needsCornerFiller, i>0), whose body returns into the OTHER wall
+    // (hasCornerAtStart, i===0) by one cabinet depth — that return is the "zone aveugle" (blind
+    // spot): real cabinet material, but not usable storage, so nothing else is ordered there.
     const walls=lens.map((len,i)=>{
       const startReal=wallStartCornerReal(i,layout);
       return{length:len,units:[],hasCornerAtStart:i===0&&startReal,needsCornerFiller:i>0&&startReal};
@@ -508,15 +515,15 @@ function initApp(){
     walls.forEach((w,i)=>{
       w.units=[];
       const fe=freeEnds(i,layout);
-      if(w.needsCornerFiller)w.units.push({width:DIM.cornerFiller,tall:false,label:null,legend:"Fileur d'angle",isFiller:true});
-      else if(w.hasCornerAtStart)w.units.push({width:cornerVoidWidth,tall:false,isGap:true});
+      if(w.needsCornerFiller)w.units.push(cornerCabinetUnit(cornerKeyForWall(i)));
+      else if(w.hasCornerAtStart)w.units.push({width:DIM.baseDepth,tall:false,isGap:true,isBlindZone:true});
       if(fe.start)w.units.push(endPieceFor(i,"start"));
       const endPiece=fe.end?endPieceFor(i,"end"):null;
       // wall0's far end is also an internal corner (into wall3) in a U-shape only — wall3 already
-      // claims the real Fileur d'angle piece for that corner (needsCornerFiller), so wall0's end
-      // just needs the matching void.
+      // claims the real meuble d'angle aveugle for that corner (needsCornerFiller), so wall0's end
+      // just needs the matching blind-zone return.
       const hasCornerAtEnd=i===0&&layout==="en U"&&cornerReal("c02");
-      const endVoid=hasCornerAtEnd?{width:cornerVoidWidth,tall:false,isGap:true}:null;
+      const endVoid=hasCornerAtEnd?{width:DIM.baseDepth,tall:false,isGap:true,isBlindZone:true}:null;
       const fixedUsed=w.units.reduce((s,u)=>s+u.width,0)+(endPiece?endPiece.width:0)+(endVoid?endVoid.width:0);
       const order=reconcileWallOrder(i,w.length,byWall[i],fixedUsed);
       const applByKey={};byWall[i].forEach(it=>applByKey[it.key]=it);
@@ -530,8 +537,12 @@ function initApp(){
       });
       if(endVoid)w.units.push(endVoid);
       if(endPiece)w.units.push(endPiece);
-      // a thin filler/void next to a full-height column (frigo/four) has to run the column's
-      // full height too, or it leaves a gap above it instead of closing the corner cleanly.
+      // a thin finishing filler, or the blind-zone return, next to a full-height column (frigo/
+      // four) is stretched to the column's full height too — not because it's physically floor-
+      // to-ceiling material, but because nothing can ever be ordered into that width at ANY
+      // height (the base return is real but unusable, and above it the wall is simply bare), so
+      // one continuous "rien à commander ici" outline is clearer than leaving an unexplained gap
+      // above a short box.
       w.units.forEach((u,idx)=>{
         if((u.isFiller||u.isGap)&&!u.tall){
           const prev=w.units[idx-1],next=w.units[idx+1];
@@ -569,10 +580,11 @@ function initApp(){
     if(u.isSink)return{fill:"#e7e7e7",text:"#15171a"};
     return{fill:fHex,text:txtOnFacade};
   }
-  function drawVoid(parts,x,y,w,h){
-    // deliberate empty space (corner clearance) — no cabinet, no door, just floor/air.
+  function drawVoid(parts,x,y,w,h,label){
+    // deliberate unusable space: either genuinely empty (no cabinet at all) or a blind-corner
+    // cabinet's return (real material, but not usable/orderable storage) — labelled accordingly.
     parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#c7cbd1" stroke-width="1" stroke-dasharray="3,3"/>`);
-    if(w>=26)parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="9" fill="#9aa0a6" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" pointer-events="none">vide</text>`);
+    if(w>=26)parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="9" fill="#9aa0a6" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" pointer-events="none">${label||"vide"}</text>`);
   }
   function drawCabinetFront(parts,x,y,w,h,front,stroke){
     if(!front||w<20||h<20)return;
@@ -634,7 +646,7 @@ function initApp(){
         const len=u.width;
         const rw=dx?len:depthPx, rh=dx?depthPx:len;
         if(u.isGap){
-          drawVoid(parts,x,y,rw,rh);
+          drawVoid(parts,x,y,rw,rh,u.isBlindZone?"angle mort":null);
           x+=dx*len; y+=dy*len;
           return;
         }
@@ -702,7 +714,7 @@ function initApp(){
         const attrs=wallIdx!=null?unitPickAttrs("base",wallIdx,u):"";
         if(u.isGap){
           const h=u.tall?colH:baseTotalH;
-          drawVoid(parts,x,floorY-h,w,h);
+          drawVoid(parts,x,floorY-h,w,h,u.isBlindZone?"angle mort":null);
           x+=w;
           return;
         }
@@ -788,7 +800,7 @@ function initApp(){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
     const warnHtml=warnings&&warnings.length?`<ul class="warn-list">${warnings.map(w=>`<li>⚠ ${w}</li>`).join("")}</ul>`:"";
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p>${warnHtml}<p class="assum">Par défaut, chaque angle interne reçoit un fileur d'angle réel de ${DIM.cornerFiller} cm de large sur un des deux murs (ses meubles démarrent juste après). Sur l'autre mur, qui n'a pas de fileur réel, aucun meuble n'est posé sur ${DIM.baseDepth+DIM.cornerFiller*2} cm (profondeur du meuble perpendiculaire ${DIM.baseDepth} cm + fileur ${DIM.cornerFiller} cm + dégagement propre ${DIM.cornerFiller} cm) pour que les portes des deux lignes s'ouvrent entièrement. Décochez "Angle réel" dans les modules du Mur 1 si les deux murs ne se rejoignent pas vraiment : chaque mur redevient une extrémité libre indépendante (fileur ou joue de finition, à vous de choisir). Dimensions basées sur les standards menuiserie française/européenne : profondeur meuble bas ${DIM.baseDepth} cm, profondeur meuble haut ${DIM.upperDepth} cm, vide plan de travail → meubles hauts ${DIM.gapH} cm, plinthe ${DIM.plinth} cm. Profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm) — une colonne réfrigérateur réelle peut être plus profonde, à vérifier à la commande. Le détail fin des jeux de portes (2 mm), du +3 mm charnière et de la profondeur réelle de découpe des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p>${warnHtml}<p class="assum">Par défaut, chaque angle interne reçoit un seul meuble d'angle aveugle réel (largeur de face réglable, ${DIM.blindCornerWidth} cm par défaut) sur un des deux murs. Sur l'autre mur, son retour occupe ${DIM.baseDepth} cm en "angle mort" : du caisson bien réel, mais qui ne se commande pas (aucun meuble ne peut y être posé). Décochez "Angle réel" dans les modules du Mur 1 si les deux murs ne se rejoignent pas vraiment : chaque mur redevient une extrémité libre indépendante (fileur ou joue de finition, à vous de choisir). Dimensions basées sur les standards menuiserie française/européenne : profondeur meuble bas ${DIM.baseDepth} cm, profondeur meuble haut ${DIM.upperDepth} cm, vide plan de travail → meubles hauts ${DIM.gapH} cm, plinthe ${DIM.plinth} cm. Profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm) — une colonne réfrigérateur réelle peut être plus profonde, à vérifier à la commande. Le détail fin des jeux de portes (2 mm), du +3 mm charnière et de la profondeur réelle de découpe des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
@@ -854,8 +866,8 @@ function initApp(){
     $("#moduleEditor").innerHTML=walls.map((w,i)=>{
       const fe=freeEnds(i,layout);
       const cornerHtml=i===0?[
-        layout!=="linéaire"?`<label class="end-check"><input type="checkbox" class="cornerLinkChk" data-key="c01"${cornerReal("c01")?" checked":""}> Angle réel avec Mur 2 (sinon : extrémités libres indépendantes)</label>`:"",
-        layout==="en U"?`<label class="end-check"><input type="checkbox" class="cornerLinkChk" data-key="c02"${cornerReal("c02")?" checked":""}> Angle réel avec Mur 3 (sinon : extrémités libres indépendantes)</label>`:""
+        layout!=="linéaire"?`<label class="end-check"><input type="checkbox" class="cornerLinkChk" data-key="c01"${cornerReal("c01")?" checked":""}> Angle réel avec Mur 2 (sinon : extrémités libres indépendantes)</label>${cornerCabWidthRow("c01","Mur 2")}`:"",
+        layout==="en U"?`<label class="end-check"><input type="checkbox" class="cornerLinkChk" data-key="c02"${cornerReal("c02")?" checked":""}> Angle réel avec Mur 3 (sinon : extrémités libres indépendantes)</label>${cornerCabWidthRow("c02","Mur 3")}`:""
       ].join(""):"";
       const endsHtml=[
         fe.start?`<label class="end-check"><input type="checkbox" class="wallEndChk" data-key="${i}_start"${wallEnds[i+"_start"]!==false?" checked":""}> Extrémité gauche contre un mur (sinon : joue de finition)</label>`:"",
@@ -920,6 +932,12 @@ function initApp(){
     }
   });
   $("#moduleEditor").addEventListener("input",e=>{
+    const cabInp=e.target.closest(".cornerCabWidthInp");
+    if(cabInp){
+      cornerCabinetWidth[cabInp.dataset.key]=Math.max(2,Number(cabInp.value)||DIM.blindCornerWidth);
+      renderViews(computeState());
+      return;
+    }
     const inp=e.target.closest(".mod-width");
     if(!inp)return;
     const kind=inp.dataset.kind,i=Number(inp.dataset.wall),idx=Number(inp.dataset.idx);
@@ -1137,7 +1155,7 @@ function initApp(){
       const len=u.width;
       const rw=dx?len:depthPx,rh=dx?depthPx:len;
       if(u.isGap){
-        drawVoid(parts,x,y,rw,rh);
+        drawVoid(parts,x,y,rw,rh,u.isBlindZone?"angle mort":null);
         x+=dx*len;y+=dy*len;
         bounds.push(bounds[bounds.length-1]+len);
         return;
@@ -1202,7 +1220,7 @@ function initApp(){
         const w=u.width;
         if(u.isGap){
           const h=u.tall?colH:baseTotalH;
-          drawVoid(parts,x,floorY-h,w,h);
+          drawVoid(parts,x,floorY-h,w,h,u.isBlindZone?"angle mort":null);
           x+=w;
           return;
         }
