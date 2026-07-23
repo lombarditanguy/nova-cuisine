@@ -696,10 +696,11 @@ const wallSideLabels={left:"Gauche",center:"Centre / fond",right:"Droite"};
 function updateWallPickUI(){
   const isLinear=$("#layout").value==="linéaire";
   const active=isLinear&&photoData;
+  const activeBig=active&&activeTab()==="before";
   $("#source").classList.toggle("pickable",active);
-  $("#beforeWrap").classList.toggle("pickable",active);
+  $("#beforeWrap").classList.toggle("pickable",activeBig);
   $("#wallPickHint").classList.toggle("hidden",!active);
-  $("#wallPickHintBig").classList.toggle("hidden",!active);
+  $("#wallPickHintBig").classList.toggle("hidden",!activeBig);
   if(!isLinear){$("#wallMarker").classList.add("hidden");$("#wallMarkerBig").classList.add("hidden")}
   $("#wallPickStatus").textContent=selected.wallSide?`Mur sélectionné : ${wallSideLabels[selected.wallSide]}`:"Aucun mur sélectionné pour l'instant (mur par défaut utilisé).";
 }
@@ -724,7 +725,7 @@ function pickWall(e){
 $("#source").addEventListener("click",pickWall);
 $("#before").addEventListener("click",pickWall);
 
-function modules(n){let r=Number(n)||0,a=[];for(const m of [90,80,60,50,40,30,20])while(r>=m){a.push(m);r-=m}return{a,r}}
+function modules(n){let r=Number(n)||0,a=[];for(const m of [120,100,90,80,60,50,45,40,30,15])while(r>=m){a.push(m);r-=m}return{a,r}}
 function updateEstimate(){
   const l=$("#layout").value,lines=[];
   [["Mur 1",$("#wall1").value],["Mur 2",$("#wall2").value],["Mur 3",$("#wall3").value]]
@@ -744,12 +745,15 @@ $("#islandFeature").addEventListener("change",updateEstimate);
 $("#upper").addEventListener("change",updateEstimate);
 layouts();
 
+function activeTab(){const t=$(".tab.active");return t?t.dataset.tab:"before"}
 function show(which){
   $$(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===which));
-  $("#beforeWrap").style.display=which==="before"&&photoData?"inline-block":"none";
-  $("#after").style.display=which==="after"&&$("#after").src?"block":"none";
-  $("#empty").style.display=(which==="before"&&!photoData)||(which==="after"&&!$("#after").src)?"block":"none";
-  $("#afterDisclaimer").classList.toggle("hidden",!(which==="after"&&$("#after").src));
+  const loading=$("#loading").style.display==="block";
+  $("#beforeWrap").style.display=!loading&&which==="before"&&photoData?"inline-block":"none";
+  $("#after").style.display=!loading&&which==="after"&&$("#after").src?"block":"none";
+  $("#empty").style.display=!loading&&((which==="before"&&!photoData)||(which==="after"&&!$("#after").src))?"block":"none";
+  $("#afterDisclaimer").classList.toggle("hidden",!(!loading&&which==="after"&&$("#after").src));
+  updateWallPickUI();
 }
 $$(".tab").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 
@@ -787,11 +791,13 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 $("#generate").onclick=async()=>{
   if(!photoData){$("#error").textContent="Importez d'abord une photo de la pièce.";$("#error").style.display="block";return}
   const btn=$("#generate");btn.disabled=true;$("#error").style.display="none";
-  $("#loading").style.display="block";$("#empty").style.display="none";$("#status").textContent="Génération…";
+  $("#loading").style.display="block";show(activeTab());$("#status").textContent="Génération…";
   try{
     const config={
       layout:$("#layout").value,
-      wall1:$("#wall1").value,wall2:$("#wall2").value,wall3:$("#wall3").value,
+      wall1:$("#wall1").value,
+      wall2:$("#layout").value!=="linéaire"?$("#wall2").value:null,
+      wall3:$("#layout").value==="en U"?$("#wall3").value:null,
       corner:$("#layout").value!=="linéaire"?selected.corner:null,
       wallSide:$("#layout").value==="linéaire"?selected.wallSide:null,
       island:$("#island").checked?{
@@ -825,7 +831,7 @@ $("#generate").onclick=async()=>{
       url=d.imageUrl;
     }
     if(!url)throw Error("Le rendu est toujours en cours. Attendez une minute puis relancez la génération.");
-    $("#after").src=url;lastRenderUrl=url;show("after");$("#status").textContent="Rendu prêt";
+    $("#after").src=url;lastRenderUrl=url;$("#loading").style.display="none";show("after");$("#status").textContent="Rendu prêt";
     $("#leadBox").classList.remove("hidden");
     setTimeout(()=>{
       $("#leadBox").scrollIntoView({behavior:"smooth",block:"center"});
@@ -833,9 +839,10 @@ $("#generate").onclick=async()=>{
       setTimeout(()=>$("#leadBox").classList.remove("pulse"),2400);
     },400);
   }catch(e){
+    $("#loading").style.display="none";show(activeTab());
     $("#error").textContent=e.message;$("#error").style.display="block";$("#status").textContent="Erreur";
   }finally{
-    $("#loading").style.display="none";btn.disabled=false;
+    btn.disabled=false;
   }
 };
 
