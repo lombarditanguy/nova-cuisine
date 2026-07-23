@@ -79,6 +79,9 @@
   .place-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel);padding:9px 12px;border-radius:8px;margin-bottom:6px;font-size:12.5px}
   .place-row select{width:auto;height:32px;padding:0 8px;font-size:12px}
   .assum{font-size:11px;color:#8a6a1f;background:#fdf3dc;border-radius:8px;padding:8px 10px;margin:10px 0 0;line-height:1.5}
+  .warn-list{list-style:none;margin:10px 0 0;padding:0;font-size:12px;color:#9a3412;background:#fff1e8;border:1px solid #fbceb1;border-radius:8px}
+  .warn-list li{padding:7px 10px;border-bottom:1px solid #fbceb1}
+  .warn-list li:last-child{border-bottom:0}
 
   /* --- export / plan pro --- */
   .export-btn{border:0;border-radius:9px;padding:11px 18px;background:var(--blue);color:#fff;font-weight:700;font-size:13px;cursor:pointer;flex:none}
@@ -263,18 +266,20 @@ function initApp(){
   $("#islandFeature").addEventListener("change",updatePlan);
   $("#upper").addEventListener("change",()=>{$("#upperHeightBox").classList.toggle("hidden",!$("#upper").checked);updatePlan()});
 
-  /* --- dimensions réelles (cm), d'après les infos atelier --- */
+  /* --- dimensions réelles (cm) — alignées sur les standards de menuiserie française/européenne --- */
   const DIM={
     plinth:10,      // pieds/plinthe
-    baseDoorH:80,   // hauteur portes meubles bas (900-100 plinthe)
-    worktopY:90,    // sol -> dessus plan de travail
-    gapH:70,        // vide plan de travail -> bas meubles hauts
-    baseDepth:50,   // profondeur meuble bas (plan de travail 600, débord 50, mur 50)
+    baseDoorH:80,   // hauteur portes meubles bas (plan de travail à 90 - plinthe)
+    worktopY:90,    // sol -> dessus plan de travail (hauteur standard usuelle)
+    gapH:60,        // vide plan de travail -> bas meubles hauts (norme pro courante : 55-60 cm)
+    baseDepth:60,   // profondeur meuble bas (standard français/européen : 56-60 cm, 60 en référence)
     cornerFiller:5, // fileur d'angle — 50mm, décale les deux lignes de meubles pour le débattement des portes
-    finishFiller:2, // fileur de finition (extrémité contre un mur) — largeur d'attente
-    finishSide:2,   // joue de finition (extrémité libre) — largeur affichée provisoire, profondeur réelle (+5cm mur) à préciser en liste de débit
+    finishFiller:5, // fileur de finition (extrémité contre un mur) — même fonction que le fileur d'angle
+                    // (dégagement du débattement de porte/poignée contre une paroi perpendiculaire),
+                    // donc même largeur
+    finishSide:2,   // joue de finition (extrémité libre) — panneau de finition plaqué, épaisseur de panneau
     baseH:90,       // hauteur meuble bas (plinthe + porte)
-    upperDepth:35   // profondeur meuble haut — valeur d'attente à confirmer
+    upperDepth:35   // profondeur meuble haut — standard 30-35 cm
   };
 
   function facadeHex(){return (DATA.facades.find(f=>f.n===selected.facades)||{}).h||"#f4f2ee"}
@@ -319,9 +324,10 @@ function initApp(){
       updatePlan();
     }));
   }
+  const STANDARD_WIDTHS=[120,100,90,80,60,50,45,40,30,15]; // largeurs catalogue standard (menuiserie française/européenne)
   function standardBreakdown(remaining){
     const mods=[];
-    for(const m of [90,80,60,50,40,30,20])while(remaining>=m){mods.push({width:m});remaining-=m}
+    for(const m of STANDARD_WIDTHS)while(remaining>=m){mods.push({width:m});remaining-=m}
     if(remaining>1)mods.push({width:Math.round(remaining),legend:"Ajustement"});
     return mods;
   }
@@ -392,18 +398,25 @@ function initApp(){
   // un meuble haut ne peut donc jamais se superposer à une colonne, et se retrouve collé à la
   // colonne par défaut, sans bandeau résiduel à gérer.
   let upperOrder={};
+  let upperTouched={}; // per wall: once the user manually edits its upper-cabinet list (move,
+  // delete, add, resize), stop auto-regenerating it — until then, keep it in sync with the wall's
+  // actual composition, so reassigning an appliance to/from a wall doesn't leave the upper run
+  // seeded for a layout that no longer exists (stale leftover gaps, or modules overflowing past
+  // the wall's real free length).
   function hardBlocks(units){
-    // columns (full height) and thin finishing strips (fileur/joue) are never usable
-    // upper-cabinet real estate — never editable, never a target for "collé aux colonnes".
+    // columns (full height), thin finishing strips (fileur/joue) and corner-clearance voids are
+    // never usable upper-cabinet real estate. The void isn't just a base-cabinet concern: the
+    // perpendicular wall's own wall cabinets stick out (upperDepth) into that same corner zone,
+    // at the same height band, so a wall cabinet here would collide with them just like a base
+    // cabinet would — never editable, never a target for "collé aux colonnes".
     const blocks=[];
     let x=0;
-    units.forEach(u=>{if(u.tall||u.isFiller)blocks.push([x,x+u.width]);x+=u.width});
+    units.forEach(u=>{if(u.tall||u.isFiller||u.isGap)blocks.push([x,x+u.width]);x+=u.width});
     return blocks;
   }
   function nextFreeStart(x,width,blocks){
     // pushes x forward until the whole [x, x+width) span clears every block — not just the
-    // start point — so a wide module can't sweep across a column that begins mid-span (this
-    // happens right after the corner-clearance buffer, which is deliberately NOT a hard block).
+    // start point — so a wide module can't sweep across a column that begins mid-span.
     let moved=true;
     while(moved){
       moved=false;
@@ -413,17 +426,17 @@ function initApp(){
   }
   function fillUpperModules(remaining){
     const mods=[];
-    for(const m of [90,80,60,50,40,30,20])while(remaining>=m){mods.push({width:m,legend:`Meuble haut ${m} cm`});remaining-=m}
+    for(const m of STANDARD_WIDTHS)while(remaining>=m){mods.push({width:m,legend:`Meuble haut ${m} cm`});remaining-=m}
     if(remaining>1)mods.push({width:Math.round(remaining),legend:"Meuble haut — ajustement"});
     return mods;
   }
   function seedUpperOrder(w){
-    // walk the wall skipping column widths entirely (they're never part of this list);
-    // hob/sink/dishwasher still get an editable "Espace libre" gap, same as before.
+    // walk the wall skipping column, filler and corner-void widths entirely (they're never part
+    // of this list — see hardBlocks); hob/sink/dishwasher still get an editable "Espace libre" gap.
     let fx=0;
     const blockedSpans=[];
     w.units.forEach(u=>{
-      if(u.tall||u.isFiller)return;
+      if(u.tall||u.isFiller||u.isGap)return;
       if(u.isHob||u.isSink||u.isDishwasher)blockedSpans.push([fx,fx+u.width]);
       fx+=u.width;
     });
@@ -442,7 +455,7 @@ function initApp(){
   function computeUpperUnits(walls,upperOn){
     walls.forEach((w,i)=>{
       if(!upperOn){w.upperUnits=[];return}
-      if(upperOrder[i]===undefined)upperOrder[i]=seedUpperOrder(w);
+      if(!upperTouched[i]||upperOrder[i]===undefined)upperOrder[i]=seedUpperOrder(w);
       const blocks=hardBlocks(w.units);
       let x=0;
       const out=[];
@@ -741,6 +754,28 @@ function initApp(){
     if(selected.credence==="Aucune")return[];
     return walls.map((w,i)=>`Crédence (${selected.credence}) — Mur ${i+1} : ${w.length} cm`);
   }
+  // Dégagements ergonomiques usuels (mêmes règles que celles imposées au rendu IA du configurateur
+  // client, ici vérifiées sur l'implantation réelle) : évier/plaque à 60 cm mini l'un de l'autre,
+  // lave-vaisselle à 50 cm mini d'un angle pour le débattement de sa porte. Avertissement seulement
+  // (l'atelier reste éditable librement) — ne bloque jamais la commande.
+  function ergonomicWarnings(walls,island){
+    const warnings=[];
+    const runs=walls.map((w,i)=>({label:`Mur ${i+1}`,units:w.units,startsAtCorner:w.hasCornerAtStart||w.needsCornerFiller}));
+    if(island)runs.push({label:"Îlot central",units:island.units,startsAtCorner:false});
+    runs.forEach(run=>{
+      const sink=run.units.find(u=>u.isSink);
+      const hob=run.units.find(u=>u.isHob);
+      const dw=run.units.find(u=>u.isDishwasher);
+      if(sink&&hob){
+        const gap=Math.round(sink.x<hob.x?hob.x-(sink.x+sink.width):sink.x-(hob.x+hob.width));
+        if(gap<60)warnings.push(`${run.label} : évier et plaque séparés de ${Math.max(0,gap)} cm seulement (60 cm recommandés entre les deux).`);
+      }
+      if(dw&&run.startsAtCorner&&dw.x<50){
+        warnings.push(`${run.label} : lave-vaisselle à ${Math.round(dw.x)} cm de l'angle (50 cm recommandés pour le débattement de sa porte).`);
+      }
+    });
+    return warnings;
+  }
   function computeCounts(walls,island){
     const counts={};
     const add=(u,kind)=>{if(u.isGap)return;const key=(u.legend||`Meuble ${kind} ${u.width} cm`)+frontLabel(u.front);counts[key]=(counts[key]||0)+1};
@@ -749,10 +784,11 @@ function initApp(){
     credenceLines(walls).forEach(key=>{counts[key]=(counts[key]||0)+1});
     return counts;
   }
-  function renderPlanLegend(counts,upperOn,upperH){
+  function renderPlanLegend(counts,upperOn,upperH,warnings){
     const rows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
     const total=Object.values(counts).reduce((a,b)=>a+b,0);
-    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p><p class="assum">Par défaut, chaque angle interne reçoit un fileur d'angle réel de ${DIM.cornerFiller} cm de large sur un des deux murs (ses meubles démarrent juste après). Sur l'autre mur, qui n'a pas de fileur réel, aucun meuble n'est posé sur ${DIM.baseDepth+DIM.cornerFiller*2} cm (profondeur du meuble perpendiculaire ${DIM.baseDepth} cm + fileur ${DIM.cornerFiller} cm + dégagement propre ${DIM.cornerFiller} cm) pour que les portes des deux lignes s'ouvrent entièrement. Décochez "Angle réel" dans les modules du Mur 1 si les deux murs ne se rejoignent pas vraiment : chaque mur redevient une extrémité libre indépendante (fileur ou joue de finition, à vous de choisir). Hypothèses encore à confirmer : largeur des fileurs/joues de finition en bout de mur (${DIM.finishFiller} cm affichés, valeurs d'attente), profondeur des meubles hauts (${DIM.upperDepth} cm, valeur d'attente), profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm). Le détail des jeux de portes (2 mm), du +3 mm charnière et de la largeur réelle des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
+    const warnHtml=warnings&&warnings.length?`<ul class="warn-list">${warnings.map(w=>`<li>⚠ ${w}</li>`).join("")}</ul>`:"";
+    $("#planLegend").innerHTML=`<h3>Commande — quantités exactes</h3><p class="sub">Usage interne — ne jamais transmettre cette liste au client.</p><ul class="legend-list">${rows}</ul><p class="note">${total} élément(s) au total${upperOn?` (meubles hauts ${upperH} cm inclus)`:""}.</p>${warnHtml}<p class="assum">Par défaut, chaque angle interne reçoit un fileur d'angle réel de ${DIM.cornerFiller} cm de large sur un des deux murs (ses meubles démarrent juste après). Sur l'autre mur, qui n'a pas de fileur réel, aucun meuble n'est posé sur ${DIM.baseDepth+DIM.cornerFiller*2} cm (profondeur du meuble perpendiculaire ${DIM.baseDepth} cm + fileur ${DIM.cornerFiller} cm + dégagement propre ${DIM.cornerFiller} cm) pour que les portes des deux lignes s'ouvrent entièrement. Décochez "Angle réel" dans les modules du Mur 1 si les deux murs ne se rejoignent pas vraiment : chaque mur redevient une extrémité libre indépendante (fileur ou joue de finition, à vous de choisir). Dimensions basées sur les standards menuiserie française/européenne : profondeur meuble bas ${DIM.baseDepth} cm, profondeur meuble haut ${DIM.upperDepth} cm, vide plan de travail → meubles hauts ${DIM.gapH} cm, plinthe ${DIM.plinth} cm. Profondeur des colonnes alignée sur les meubles bas (${DIM.baseDepth} cm) — une colonne réfrigérateur réelle peut être plus profonde, à vérifier à la commande. Le détail fin des jeux de portes (2 mm), du +3 mm charnière et de la profondeur réelle de découpe des joues de finition (profondeur + 5 cm de mur) sera intégré dans la future liste de débit précise.</p>`;
   }
 
   function computeState(){
@@ -769,7 +805,7 @@ function initApp(){
     const txtOnFacade=textColorFor(fHex);
     renderTopView(state.walls,state.island,fHex,txtOnFacade);
     renderElevation(state.walls,state.island,fHex,txtOnFacade,state.upperOn,upperH);
-    renderPlanLegend(computeCounts(state.walls,state.island),state.upperOn,upperH);
+    renderPlanLegend(computeCounts(state.walls,state.island),state.upperOn,upperH,ergonomicWarnings(state.walls,state.island));
   }
   function updatePlan(){
     const state=computeState();
@@ -848,6 +884,7 @@ function initApp(){
     const mv=e.target.closest(".mod-move");
     if(mv){
       const kind=mv.dataset.kind,i=Number(mv.dataset.wall),idx=Number(mv.dataset.idx),dir=Number(mv.dataset.dir);
+      if(kind==="upper")upperTouched[i]=true;
       const arr=kind==="upper"?upperOrder[i]:wallOrder[i];
       if(arr){
         const j=idx+dir;
@@ -868,6 +905,7 @@ function initApp(){
     const del=e.target.closest(".mod-del");
     if(del){
       const kind=del.dataset.kind,i=Number(del.dataset.wall),idx=Number(del.dataset.idx);
+      if(kind==="upper")upperTouched[i]=true;
       const arr=kind==="upper"?upperOrder[i]:wallOrder[i];
       if(arr){arr.splice(idx,1);updatePlan();}
       return;
@@ -876,8 +914,8 @@ function initApp(){
     if(add){
       const i=Number(add.dataset.wall),kind=add.dataset.kind;
       if(kind==="baseMod"){if(!wallOrder[i])wallOrder[i]=[];wallOrder[i].push({type:"filler",id:genId(),width:60,front:{kind:"door"},auto:false})}
-      else if(kind==="upperMod"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:60})}
-      else if(kind==="upperGap"){if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:30,isGap:true})}
+      else if(kind==="upperMod"){upperTouched[i]=true;if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:60})}
+      else if(kind==="upperGap"){upperTouched[i]=true;if(!upperOrder[i])upperOrder[i]=[];upperOrder[i].push({id:genId(),width:30,isGap:true})}
       updatePlan();
     }
   });
@@ -885,6 +923,7 @@ function initApp(){
     const inp=e.target.closest(".mod-width");
     if(!inp)return;
     const kind=inp.dataset.kind,i=Number(inp.dataset.wall),idx=Number(inp.dataset.idx);
+    if(kind==="upper")upperTouched[i]=true;
     const arr=kind==="upper"?upperOrder[i]:wallOrder[i];
     if(arr&&arr[idx]){
       arr[idx].width=Math.max(2,Number(inp.value)||2);
@@ -1239,6 +1278,8 @@ function initApp(){
     const table=buildNomenclatureTable(walls,island,upperOn,upperH);
     const counts=computeCounts(walls,island);
     const summaryRows=Object.entries(counts).map(([label,n])=>`<li><strong>${n}×</strong> ${label}</li>`).join("");
+    const warnings=ergonomicWarnings(walls,island);
+    const warnHtml=warnings.length?`<h3>Points à vérifier</h3><ul class="warn-list">${warnings.map(w=>`<li>⚠ ${w}</li>`).join("")}</ul>`:"";
     $("#exportView").innerHTML=`
       <div class="export-toolbar no-print">
         <button id="printBtn">Imprimer / Exporter en PDF</button>
@@ -1257,6 +1298,7 @@ function initApp(){
         ${table}
         <h3>Résumé — quantités par référence</h3>
         <ul class="legend-list">${summaryRows}</ul>
+        ${warnHtml}
       </div>`;
   }
   $("#exportBtn").addEventListener("click",()=>{
