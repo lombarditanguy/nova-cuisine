@@ -100,7 +100,7 @@ function buildPrompt(config) {
     : "Do not add any kitchen island; keep the floor space open.";
 
   const corner = /en l\b|en u\b/i.test(config.layout || "")
-    ? "Corner solution: a single standard blind corner base cabinet (meuble d'angle aveugle) at each inside corner — one visible door on one wall, roughly 90 cm wide, with its blind, inaccessible return tucked behind the perpendicular run. Not a lazy susan, not a carousel, not two separate cabinet doors meeting bare at the corner."
+    ? "Corner solution: ordinary cabinets on both walls, joined at the inside corner by a small vertical corner filler strip (fileur d'angle) — not a carousel, not a lazy susan, not a pull-out corner unit. One wall's cabinets sit flush against that filler; the other wall's cabinets are set back far enough (clearing the first wall's cabinet depth) that both doors open fully without hitting each other, leaving a small unused dead zone deep in the corner."
     : "";
 
   const lighting = config.lighting && (config.lighting.spots || config.lighting.led)
